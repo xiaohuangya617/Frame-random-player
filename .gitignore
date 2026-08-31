@@ -1,0 +1,18 @@
+# 依赖与构建
+node_modules/
+dist/
+dev-data/
+tmp-e2e-data/
+
+# 测试数据与截图
+test-data/
+test-shots/
+
+# 用户数据与备份（绝不入库）
+_用户存档备份_*/
+播放备份_*.json
+
+# 系统与日志
+*.log
+.DS_Store
+Thumbs.db

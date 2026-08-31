@@ -1,0 +1,20 @@
+[
+  ["p1-storage.js", "const saveAchievementsToDB=async()=>{", "const loadVideosFromHandles=async(category)=>{"],
+  ["p2-loadVideos.js", "const loadVideosFromHandles=async(category)=>{", "const checkHandlePermission=async handle=>{"],
+  ["empty.js", "const checkHandlePermission=async handle=>{", "const openCollectionCreator=()=>{"],
+  ["p3-collection.js", "const openCollectionCreator=()=>{", "const batchAuthorizeCollection=async()=>{"],
+  ["empty.js", "const batchAuthorizeCollection=async()=>{", "const batchAuthorizeBackup = async () => {"],
+  ["p5-relink.js", "const batchAuthorizeBackup = async () => {", "const requestPermissionRestore=category=>{"],
+  ["empty.js", "const requestPermissionRestore=category=>{", "const initSortable=()=>{"],
+  ["p7-attemptAuth.js", "const attemptCategoryAuth=async category=>{", "const switchCategory=id=>{"],
+  ["p9-switchCategory.js", "const switchCategory=id=>{", "const playVideo=async(video,options={"],
+  ["p8-playVideo.js", "const playVideo=async(video,options={", "const playSpecificVideo=async(categoryId,videoId,from='')=>{"],
+  ["empty.js", "const deleteCategoryFromDB=id=>new Promise((resolve,reject)=>{", "const refreshCurrentCategory=async()=>{"],
+  ["p11-backup.js", "const backupData=async()=>{", "const restoreData=async event=>{"],
+  ["p12-restore.js", "const restoreData=async event=>{", "const resetStatistics=async()=>{"],
+  ["p13-resetAll.js", "const resetAllPools=async()=>{", "const deleteCurrentCategory=async()=>{"],
+  ["p14-selectStrategy.js", "const selectStrategy=(strategy)=>{", "const setupCustomControls=()=>{"],
+  ["p15-export.js", "const getDriveLetter=async()=>", "const showAchievementsModal=()=>{"],
+  ["p16-connectionStatus.js", "const updateConnectionStatus=(restoredCount)=>{", "const addToHistory=(video,categoryName,categoryId,videoId)=>{"],
+  ["p17-tail.js", "window.addEventListener('beforeunload',()=>{", "</script>"]
+]

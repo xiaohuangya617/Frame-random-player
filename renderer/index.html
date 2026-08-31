@@ -1,0 +1,3970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+随机播放器 5.2（桌面版）</title>
+<link rel="stylesheet" href="styles.css">
+<script src="libs/html2canvas.min.js"></script>
+<script src="libs/Sortable.min.js"></script>
+<style>
+@font-face{font-family:'Inter';src:url('fonts/Inter-Regular.woff2') format('woff2');font-weight:400}
+@font-face{font-family:'Inter';src:url('fonts/Inter-SemiBold.woff2') format('woff2');font-weight:600}
+@font-face{font-family:'Inter';src:url('fonts/Inter-Bold.woff2') format('woff2');font-weight:700}
+body{font-family:'Inter','Microsoft YaHei',system-ui,-apple-system,'Segoe UI',sans-serif}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#1f2937}
+::-webkit-scrollbar-thumb{background:#4b5563;border-radius:3px}
+.fade-in{animation:fadeIn .4s ease-out}
+@keyframes fadeIn{0%{opacity:0;transform:translateY(10px)}
+to{opacity:1;transform:translateY(0)}
+}
+.glass-panel{background:rgba(31,41,55,.7);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1)}
+.category-tab{transition:all .3s ease}
+.category-tab.active{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);box-shadow:0 4px 15px rgba(102,126,234,.4)}
+.progress-bar{transition:width .5s ease}
+.loading-pulse{animation:loadingPulse 2s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes loadingPulse{0%,100%{opacity:1}
+50%{opacity:.5}
+}
+#toastContainer{position:fixed;bottom:1.5rem;right:1.5rem;z-index:100;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+.toast-item{background:rgba(17,24,39,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.14);color:#fff;padding:.75rem 1.25rem;border-radius:.75rem;box-shadow:0 10px 25px -5px rgba(0,0,0,.5);font-size:.9rem;max-width:24rem;word-break:break-word;transform:translateY(0);transition:all .3s ease;pointer-events:auto;border-left:4px solid}
+.toast-item.info{border-left-color:#3b82f6}
+.toast-item.success{border-left-color:#10b981}
+.toast-item.warning{border-left-color:#f59e0b}
+.toast-item.error{border-left-color:#ef4444}
+#dragOverlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;border:4px dashed #3b82f6;pointer-events:none}
+#dragOverlay.active{display:flex}
+.drag-message{background:rgba(59,130,246,.2);border:2px solid #3b82f6;border-radius:1rem;padding:2rem 4rem;font-size:2rem;color:#fff;font-weight:700}
+.stat-card{background:rgba(31,41,55,.5);border-radius:.75rem;padding:1rem;border:1px solid rgba(255,255,255,.05);height:fit-content;min-width:0}
+.stat-card h4{font-size:1rem;font-weight:600;color:#a5b4fc;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;white-space:nowrap}
+.stat-item{display:flex;justify-content:space-between;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.05);font-size:.9rem;cursor:pointer;transition:background-color .2s;border-radius:.25rem}
+.stat-item:hover{background-color:rgba(255,255,255,.1)}
+.stat-item:last-child{border-bottom:none}
+.stat-rank{color:#9ca3af;width:2rem;flex-shrink:0}
+.stat-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.stat-value{color:#fbbf24;font-weight:500;flex-shrink:0;margin-left:.5rem}
+.stat-grid-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.history-item{display:flex;justify-content:space-between;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background-color .2s;border-radius:.25rem}
+.history-item:hover{background-color:rgba(255,255,255,.1)}
+.history-item:last-child{border-bottom:none}
+.reaction-btn{transition:all .2s ease}
+.reaction-btn.liked{color:#ec4899}
+.reaction-btn.disliked{color:#3b82f6}
+.help-content{white-space:pre-wrap;font-size:.8rem;line-height:1.3;color:#e5e7eb;max-height:60vh;overflow-y:auto;padding-right:.5rem}
+.help-content p{margin-bottom:.2rem}
+.help-content h2{font-size:.9rem;font-weight:600;color:#a5b4fc;margin:.3rem 0 .1rem}
+.help-content h2:first-child{margin-top:0}
+.help-content ul{list-style-type:disc;padding-left:1.2rem;margin-bottom:.2rem}
+.help-content li{margin-bottom:.05rem}
+.help-content .note{color:#fbbf24;font-style:italic}
+.help-modal-inner{padding:1rem}
+.changelog-content{white-space:pre-wrap;font-size:.9rem;line-height:1.5;color:#e5e7eb;max-height:60vh;overflow-y:auto;padding-right:.5rem}
+.changelog-content h3{font-size:1rem;font-weight:600;color:#a5b4fc;margin:.5rem 0 .2rem}
+.changelog-content h3:first-child{margin-top:0}
+.changelog-content ul{list-style-type:disc;padding-left:1.5rem;margin-bottom:.5rem}
+.changelog-content li{margin-bottom:.2rem}
+.changelog-content .version{color:#fbbf24;font-weight:500}
+.changelog-content .date{color:#9ca3af;font-size:.8rem;margin-left:.5rem}
+.stat-tabs{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
+.stat-tab{padding:.25rem 1rem;border-radius:9999px;font-size:.9rem;cursor:pointer;background:rgba(255,255,255,.1);transition:all .2s}
+.stat-tab.active{background:#667eea;color:#fff}
+.stat-tip{color:#9ca3af;font-size:.8rem;margin-left:auto}
+.backup-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0}
+.backup-option{background:rgba(31,41,55,.5);border-radius:.75rem;padding:1.5rem;text-align:center;cursor:pointer;transition:all .2s;border:1px solid rgba(255,255,255,.05)}
+.backup-option:hover{background:rgba(255,255,255,.1)}
+.backup-option .icon{font-size:2.5rem;margin-bottom:.5rem}
+.backup-option .label{font-size:1rem;font-weight:600}
+.achievement-item{display:flex;align-items:center;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background-color .2s;border-radius:.25rem}
+.achievement-item:hover{background-color:rgba(255,255,255,.1)}
+.achievement-item:last-child{border-bottom:none}
+.achievement-icon{font-size:1.5rem;margin-right:.75rem;width:2rem;text-align:center}
+.achievement-content{flex:1;min-width:0}
+.achievement-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.25rem}
+.achievement-name{font-weight:600;color:#e5e7eb;font-size:.9rem}
+.achievement-level{color:#a5b4fc;font-size:.8rem}
+.achievement-progress-bg{background:rgba(255,255,255,.1);height:4px;border-radius:2px;overflow:hidden;margin-bottom:.25rem}
+.achievement-progress-fill{background:#fbbf24;height:100%}
+.achievement-desc{font-size:.7rem;color:#9ca3af}
+.achievement-desc.hidden{color:#6b7280;font-style:italic}
+.achievement-tabs{display:flex;gap:.5rem;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:.5rem}
+.achievement-tab{padding:.25rem 1rem;border-radius:9999px;font-size:.9rem;cursor:pointer;background:rgba(255,255,255,.1)}
+.achievement-tab.active{background:#667eea;color:#fff}
+.modal-footer{display:flex;justify-content:space-between;align-items:center;padding-top:1rem;margin-top:1rem;border-top:1px solid rgba(255,255,255,.1)}
+.footer-left{display:flex;gap:.5rem}
+.footer-right{display:flex;gap:.5rem}
+.btn-export{background:#3b82f6;color:#fff;padding:.5rem 1rem;border-radius:.5rem;font-size:.9rem;cursor:pointer;transition:all .2s}
+.btn-export:hover{background:#2563eb}
+.report-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin:1rem 0}
+.report-card{background:rgba(31,41,55,.5);border-radius:.75rem;padding:1rem;border:1px solid rgba(255,255,255,.05)}
+.report-card h4{font-size:.9rem;font-weight:600;color:#a5b4fc;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.report-stat{font-size:2rem;font-weight:700;color:#fbbf24}
+.report-label{font-size:.8rem;color:#9ca3af}
+.report-slot{font-size:1.2rem;font-weight:600;margin-bottom:.25rem}
+.report-slot-desc{font-size:.8rem;color:#9ca3af}
+.stats-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.stats-header h3{font-size:1.25rem;font-weight:700;color:#fff}
+
+#customControls{position:absolute;bottom:0;left:0;right:0;padding:12px 16px 8px;background:transparent;opacity:0;transition:opacity .25s ease;z-index:10;display:flex;flex-direction:column;pointer-events:none}
+
+#customControls.show,#customControls.pinned{opacity:1;pointer-events:auto}
+
+#customControls input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;background:rgba(255,255,255,.3);border-radius:2px;outline:none;cursor:pointer}
+
+#customControls input[type=range]:hover{height:5px;background:rgba(255,255,255,.5)}
+
+#customControls input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#fff;border-radius:50%;cursor:pointer;box-shadow:0 0 4px rgba(0,0,0,.5)}
+
+#customControls input[type=range]::-moz-range-thumb{width:14px;height:14px;background:#fff;border-radius:50%;cursor:pointer;border:none;box-shadow:0 0 4px rgba(0,0,0,.5)}
+
+.ctrl-btn{background:none;border:none;color:#fff;cursor:pointer;padding:4px 6px;font-size:16px;line-height:1;opacity:.8;transition:opacity .2s;border-radius:4px}
+
+.ctrl-btn:hover{opacity:1;background:rgba(255,255,255,.1)}
+
+.ctrl-time{color:#fff;font-size:12px;font-variant-numeric:tabular-nums;opacity:.85;min-width:36px;text-align:center}
+
+#seekBar::-webkit-slider-runnable-track{background:rgba(255,255,255,.3);border-radius:2px}
+
+#seekBar::-moz-range-track{background:rgba(255,255,255,.3);border-radius:2px}
+
+
+#videoContainer:fullscreen,#videoContainer:-webkit-full-screen{padding:0;background:#000;display:flex;align-items:center;justify-content:center}
+
+#videoContainer:fullscreen .max-w-7xl,#videoContainer:-webkit-full-screen .max-w-7xl{max-width:none!important;width:100vw!important;height:100vh!important;border-radius:0!important}
+
+/* ===== 4.5 全局 UI 统一 ===== */
+/* 下拉框统一 */
+select{
+background-color:#111827;
+color:#e5e7eb;
+border:1px solid #374151;
+border-radius:.5rem;
+padding:.5rem .6rem;
+font-size:.875rem;
+outline:none;
+cursor:pointer;
+transition:border-color .2s,box-shadow .2s}
+select:hover{border-color:#4b5563}
+select:focus{border-color:#667eea;
+box-shadow:0 0 0 2px rgba(102,126,234,.3)}
+/* 文本输入框统一焦点 */
+input[type="text"],input[type="search"],textarea{
+transition:border-color .2s,box-shadow .2s}
+input[type="text"]:focus,input[type="search"]:focus,textarea:focus{
+border-color:#667eea!important;
+box-shadow:0 0 0 2px rgba(102,126,234,.25)!important;
+outline:none}
+/* 弹窗统一容器 */
+[id$="Modal"]>.bg-gray-800{
+border:1px solid rgba(255,255,255,.12);
+box-shadow:0 25px 60px -15px rgba(0,0,0,.8)}
+/* 统一按钮过渡 */
+button{transition:background-color .2s,color .2s,border-color .2s,transform .15s}
+button:active{transform:scale(.97)}
+
+</style>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen overflow-hidden flex flex-col">
+<div id="dragOverlay">
+<div class="drag-message">
+松开以上传文件夹</div>
+</div>
+<header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between shadow-lg z-20">
+<div class="flex items-center space-x-4">
+<div class="relative" id="logoIcon">
+<div class="w-10 h-10 rounded-xl shadow-lg cursor-pointer overflow-hidden" onclick="onLogoClick()">
+<img src="logo.png" class="w-10 h-10 object-cover" alt="logo">
+</div>
+<div id="persistIndicator" class="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800 hidden" title="已持久化">
+</div>
+</div>
+<div>
+<h1 class="text-xl font-bold text-white tracking-tight">
+随机播放器 5.2（桌面版）</h1>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<div id="connectionStatus" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gray-700/50 text-xs border border-gray-600/50" title="数据目录位置">
+<span class="w-2 h-2 rounded-full bg-yellow-400 loading-pulse">
+</span>
+<span class="text-gray-300">
+初始化中...</span>
+</div>
+<button onclick="showStrategyModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<span>
+⚙️ 策略变更</span>
+</button>
+<button onclick="showHistoryModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<span>
+📋 浏览历史</span>
+</button>
+<button onclick="showLikedModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<span>
+👍 点赞清单</span>
+</button>
+<button onclick="showStatsModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<span>
+📊 排行统计</span>
+</button>
+<button onclick="showHelpModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<span>
+❓ 使用说明</span>
+</button>
+<button onclick="showAchievementsModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<span>
+🏆 成就</span>
+</button>
+<button onclick="showBackupRestoreModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<span>
+💾📂 备份/恢复</span>
+</button>
+<button onclick="resetAllPools()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<span>
+初始化</span>
+</button>
+</div>
+</header>
+<div class="bg-gray-800/50 border-b border-gray-700 px-6 py-3 overflow-x-auto">
+<div class="flex space-x-2" id="categoryTabs">
+</div>
+</div>
+<main class="flex-1 flex overflow-hidden relative">
+<aside class="w-80 bg-gray-800/30 border-r border-gray-700 flex flex-col p-6 space-y-6 overflow-y-auto">
+<div class="glass-panel rounded-2xl p-5 space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">
+当前合集</h3>
+<span id="poolBadge" class="px-2 py-1 text-xs font-bold bg-indigo-500/20 text-indigo-300 rounded-md">
+未加载</span>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-sm">
+<span class="text-gray-400">
+剩余未看</span>
+<span id="remainingCount" class="text-white font-bold text-lg">
+0</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-gray-400">
+已观看</span>
+<span id="watchedCount" class="text-gray-500">
+0</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-gray-400">
+总视频数</span>
+<span id="totalCount" class="text-gray-400">
+0</span>
+</div>
+</div>
+<div class="relative pt-2">
+<div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+<div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 progress-bar" style="width:0%">
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<button id="drawBtn" onclick="drawVideo()" disabled class="w-full group relative px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold text-lg shadow-lg shadow-indigo-500/25 transition-all transform hover:scale-[1.02] active:scale-[0.98] overflow-hidden">
+<span class="relative flex items-center justify-center space-x-2">
+<svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+</svg>
+<span>
+随机抽取</span>
+</span>
+</button>
+<button onclick="resetCurrentPool()" id="resetBtn" disabled class="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg font-medium text-gray-300 transition-colors flex items-center justify-center space-x-2 border border-gray-600">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+</svg>
+<span>
+重置当前合集</span>
+</button>
+<button onclick="supplementCurrentCategory()" id="supplementBtn" disabled class="w-full px-4 py-3 bg-teal-700/30 hover:bg-teal-700/50 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg font-medium text-teal-300 transition-colors flex items-center justify-center space-x-2 border border-teal-800/50">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+</svg>
+<span>
+补充当前合集</span>
+</button>
+<button onclick="refreshCurrentCategory()" id="refreshBtn" disabled class="w-full px-4 py-3 bg-cyan-700/30 hover:bg-cyan-700/50 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg font-medium text-cyan-300 transition-colors flex items-center justify-center space-x-2 border border-cyan-800/50">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+</svg>
+<span>
+更新当前合集</span>
+</button>
+<button onclick="deleteCurrentCategory()" id="deleteBtn" disabled class="w-full px-4 py-3 bg-red-700/30 hover:bg-red-700/50 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg font-medium text-red-300 transition-colors flex items-center justify-center space-x-2 border border-red-800/50">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+</svg>
+<span>
+删除当前合集</span>
+</button>
+</div>
+<div class="pt-4 border-t border-gray-700 space-y-3">
+<h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+合集管理</h4>
+<button onclick="openCollectionCreator()" class="w-full px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-sm text-purple-300 transition-all flex items-center justify-center space-x-2 group">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+</svg>
+<span>
+创建视频合集</span>
+</button>
+<button onclick="showTagCollectionModal()" class="w-full px-4 py-3 bg-fuchsia-600/20 hover:bg-fuchsia-600/30 border border-fuchsia-500/30 rounded-lg text-sm text-fuchsia-300 transition-all flex items-center justify-center space-x-2 group">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7a1.994 1.994 0 01-.586-1.414V7a4 4 0 014-4z"/>
+</svg>
+<span>
+创建标签合集</span>
+</button>
+<p class="text-xs text-gray-500 leading-relaxed">
+视频合集：自由添加多个文件夹（自动递归子目录），也可拖拽文件夹创建。<br>
+标签合集：按视频标签自动聚合（动态跟随），只提供重置与删除。</p>
+</div>
+</aside>
+<section class="flex-1 bg-black relative flex flex-col">
+<div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 z-10">
+<div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-4">
+<svg class="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+</svg>
+</div>
+<p class="text-lg font-medium">
+准备就绪</p>
+<p class="text-sm mt-2">
+创建合集或拖拽文件夹开始播放</p>
+</div>
+<div id="videoContainer" class="flex-1 flex items-center justify-center p-2 hidden fade-in">
+<div class="relative w-full max-w-7xl aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+<video id="mainPlayer" class="w-full h-full object-contain" playsinline>
+</video>
+<div id="customControls">
+<input type="range" id="seekBar" value="0" min="0" max="1000" step="1">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+<div style="display:flex;align-items:center;gap:8px">
+<button id="playPauseBtn" class="ctrl-btn" title="播放/暂停">
+▶</button>
+<span id="currentTime" class="ctrl-time">
+0:00</span>
+<span class="ctrl-time">
+/</span>
+<span id="durationTime" class="ctrl-time">
+0:00</span>
+</div>
+<div style="display:flex;align-items:center;gap:8px">
+<button id="skipBackBtn" class="ctrl-btn" title="后退10秒">
+⏪</button>
+<button id="skipFwdBtn" class="ctrl-btn" title="前进10秒">
+⏩</button>
+<button id="volumeBtn" class="ctrl-btn" title="静音/取消静音">
+🔊</button>
+<input type="range" id="volumeSlider" value="80" min="0" max="100" step="1" style="width:60px">
+<button id="fullscreenBtn" class="ctrl-btn" title="全屏">
+⛶</button>
+</div>
+</div>
+</div>
+<div class="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent opacity-0 hover:opacity-100 transition-opacity">
+<div class="flex items-center justify-between">
+<h2 id="videoTitle" class="text-white font-bold text-lg truncate flex-1">
+</h2>
+<div class="flex items-center space-x-3">
+<button id="likeBtn" onclick="likeCurrentVideo()" class="reaction-btn flex items-center space-x-1 text-gray-400 hover:text-pink-500 transition-colors">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+</svg>
+<span id="likeCount">
+0</span>
+</button>
+<button id="dislikeBtn" onclick="dislikeCurrentVideo()" class="reaction-btn flex items-center space-x-1 text-gray-400 hover:text-blue-500 transition-colors">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+</svg>
+<span id="dislikeCount">
+0</span>
+</button>
+</div>
+</div>
+<p id="videoMeta" class="text-gray-300 text-sm">
+</p>
+</div>
+</div>
+</div>
+<div id="videoActionBar" class="hidden bg-gray-900 border-t border-gray-800 px-4 py-2 flex items-center gap-2 flex-wrap">
+<span id="videoPathLabel" class="text-xs text-gray-500 truncate flex-1 min-w-0" title=""></span>
+<button onclick="showRenameModal()" class="px-3 py-1.5 text-sm text-amber-300 hover:text-amber-200 bg-amber-900/30 hover:bg-amber-900/50 rounded-lg transition-colors border border-amber-800/50" title="重命名当前视频 / 为文件名加前缀">
+✏️ 重命名/前缀</button>
+<button onclick="showTagsModal()" class="px-3 py-1.5 text-sm text-purple-300 hover:text-purple-200 bg-purple-900/30 hover:bg-purple-900/50 rounded-lg transition-colors border border-purple-800/50" title="为当前视频添加标签（仅记录在存档中，不修改文件名）">
+🏷️ 加标签</button>
+<button onclick="confirmDeleteCurrentVideo()" class="px-3 py-1.5 text-sm text-red-300 hover:text-red-200 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition-colors border border-red-800/50" title="删除当前视频（移入系统回收站）">
+🗑️ 删除</button>
+<button onclick="revealCurrentVideo()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/50 rounded-lg transition-colors border border-gray-600/50" title="在资源管理器中定位该文件">
+📂 所在文件夹</button>
+</div>
+<div class="bg-gray-900 border-t border-gray-800 p-3 text-center text-xs text-gray-500">
+快捷键: 空格(播放/暂停) | ←/→ (快退/快进10s) | Ctrl+D (随机抽取) | Delete (删除/确认删除) | Esc (关闭弹窗)</div>
+</section>
+</main>
+<div id="collectionModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[32rem] border border-gray-700 shadow-2xl max-h-[80vh] overflow-y-auto">
+<h3 class="text-xl font-bold text-white mb-4">
+创建合集</h3>
+<div class="space-y-4">
+<div>
+<label class="text-sm text-gray-400 block mb-2">
+已选目录 (<span id="selectedDirCount">
+0</span>
+)</label>
+<div id="selectedDirsList" class="bg-gray-900/50 rounded-lg p-3 max-h-40 overflow-y-auto text-sm text-gray-300 space-y-1">
+<p class="text-gray-500 italic">
+暂无目录</p>
+</div>
+</div>
+<div class="flex space-x-2">
+<button onclick="addDirectoryToCollection()" class="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-colors">
++ 添加目录</button>
+<button onclick="clearCollectionDirs()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-200 text-sm transition-colors">
+清空</button>
+</div>
+<div>
+<label class="text-sm text-gray-400 block mb-1">
+合集名称</label>
+<input type="text" id="collectionNameInput" placeholder="例如：我的精选" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+</div>
+<div class="flex justify-end space-x-2 pt-2">
+<button onclick="closeCollectionModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+取消</button>
+<button onclick="createCollection()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm text-white font-medium transition-colors">
+创建合集</button>
+</div>
+</div>
+</div>
+</div>
+<div id="statsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[40rem] border border-gray-700 shadow-2xl max-h-[80vh] overflow-y-auto">
+<div class="stats-header">
+<h3 class="text-xl font-bold text-white">
+排行统计</h3>
+<button onclick="showReportModal()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm text-white">
+📊 生成报告</button>
+</div>
+<div class="stat-tabs">
+<span class="stat-tab active" data-range="week">
+本周排行TOP10</span>
+<span class="stat-tab" data-range="month">
+本月排行TOP10</span>
+<span class="stat-tab" data-range="year">
+本年排行TOP10</span>
+<span class="stat-tip">
+（按观看指数排序）</span>
+</div>
+<div id="statsTop10List" class="space-y-2 min-h-[200px]">
+</div>
+<div class="flex justify-between items-center pt-4 mt-4 border-t border-gray-700">
+<button onclick="resetStatistics()" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg text-sm text-white font-medium transition-colors">
+🔄 重置统计</button>
+<button onclick="closeStatsModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="reportModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[48rem] border border-gray-700 shadow-2xl max-h-[80vh] overflow-y-auto" id="reportContent">
+<h3 class="text-xl font-bold text-white mb-4 flex items-center">
+<svg class="w-6 h-6 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+</svg>
+<span id="reportTitle">
+本周观影报告</span>
+</h3>
+<div class="report-grid">
+<div class="report-card">
+<h4>
+📊 总播放次数</h4>
+<div class="report-stat" id="reportTotalPlays">
+0</div>
+</div>
+<div class="report-card">
+<h4>
+❤️ 总点赞数</h4>
+<div class="report-stat" id="reportTotalLikes">
+0</div>
+</div>
+<div class="report-card">
+<h4>
+⏰ 最常观看时段</h4>
+<div class="report-slot" id="reportTopSlot">
+20:00-23:00</div>
+<div class="report-slot-desc" id="reportSlotDesc">
+共 12 次播放</div>
+</div>
+<div class="report-card">
+<h4>
+📚 最爱合集</h4>
+<div class="report-slot" id="reportTopCategory">
+科幻片</div>
+<div class="report-slot-desc">
+指数最高</div>
+</div>
+</div>
+<div class="report-card mt-4">
+<h4>
+🎬 观看指数 TOP5</h4>
+<div id="reportTopVideos" class="space-y-2">
+</div>
+</div>
+<div class="flex justify-end gap-2 pt-4 mt-4 border-t border-gray-700">
+<button onclick="downloadReport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm text-white transition-colors">
+📥 下载报告</button>
+<button onclick="closeReportModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="likedModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[36rem] border border-gray-700 shadow-2xl flex flex-col max-h-[80vh]">
+<h3 class="text-xl font-bold text-white mb-4 flex items-center flex-shrink-0">
+<svg class="w-6 h-6 mr-2 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+</svg>
+点赞清单</h3>
+<div id="likedList" class="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
+</div>
+<div class="modal-footer flex-shrink-0">
+<div class="footer-left">
+<button onclick="exportLikedList()" class="btn-export">
+📄 输出清单</button>
+</div>
+<div class="footer-right">
+<button onclick="closeLikedModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+</div>
+<div id="dislikedModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[36rem] border border-gray-700 shadow-2xl flex flex-col max-h-[80vh]">
+<h3 class="text-xl font-bold text-white mb-4 flex items-center flex-shrink-0">
+<svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+</svg>
+点踩清单</h3>
+<div id="dislikedList" class="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
+</div>
+<div class="modal-footer flex-shrink-0">
+<div class="footer-left">
+<button onclick="exportDislikedList()" class="btn-export">
+📄 输出清单</button>
+</div>
+<div class="footer-right">
+<button onclick="closeDislikedModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+</div>
+<div id="historyModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[36rem] border border-gray-700 shadow-2xl flex flex-col max-h-[80vh]">
+<h3 class="text-xl font-bold text-white mb-4 flex items-center flex-shrink-0">
+<svg class="w-6 h-6 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+</svg>
+浏览历史</h3>
+<div id="historyModalList" class="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
+</div>
+<div class="flex justify-end pt-4 mt-4 border-t border-gray-700 flex-shrink-0">
+<button onclick="closeHistoryModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="changelogModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[40rem] border border-gray-700 shadow-2xl max-h-[80vh] overflow-y-auto">
+<h3 class="text-xl font-bold text-white mb-4 flex items-center">
+<svg class="w-6 h-6 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+</svg>
+更新日志</h3>
+<div class="changelog-content">
+<h3>
+<span class="version">
+版本 5.2</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+🐛 修复页眉图标渲染错误（此前抓取图标帧错误显示为噪点），现正确显示新图标</li>
+</ul>
+<h3>
+<span class="version">
+版本 5.1</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+🎨 更换应用图标：页眉 logo、窗口/任务栏图标、exe 图标全部使用新图标</li>
+</ul>
+<h3>
+<span class="version">
+版本 5.0</span>
+  <span class="date">
+里程碑：全量自审</span>
+</h3>
+<ul>
+<li>
+⚡ 数据写入防抖合并（高频播放/点赞不再反复全量写盘），退出时同步落盘不丢数据</li>
+<li>
+🔗 修复标签合集一致性：刷新/补充/删除视频/删除合集后自动重新聚合</li>
+<li>
+🗜️ 备份瘦身：标签合集不再重复打包视频，恢复后自动重建（备份体积显著减小）</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.9</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+🪟 默认窗口尺寸调整为 1600×900</li>
+<li>
+📄 点赞/点踩清单导出真实绝对路径（跨合集去重）；清单列表悬停可查看完整路径</li>
+<li>
+⚙️ 抽取策略弹窗：当前选中策略高亮显示，一眼可见当前策略</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.8</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+🐛 修复删除标签预设后输入框无法输入的问题：全面移除原生 confirm/prompt 对话框（Electron 焦点缺陷），改用应用内确认/输入对话框，风格统一且不再干扰输入</li>
+<li>
+🐛 修复标签/前缀预设"改名"按钮无效（Electron 不支持 prompt）</li>
+<li>
+🐛 删空的标签/前缀预设重启后不再恢复默认</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.7</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+✏️ 重命名与加前缀合并为一个弹窗：只填名称=仅改名，只填前缀=仅加前缀，都填=前缀+新名</li>
+<li>
+🏷️ 新增「加标签」：MAX/HIGH/LOW 等标签卡片点击即添加（可管理预设），仅存存档不修改文件名</li>
+<li>
+📂 新增「创建标签合集」：勾选标签自动聚合对应视频，动态跟随标签变化，观看记录共享</li>
+<li>
+📁 「创建合集」更名为「创建视频合集」</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.6</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+📁 新增「补充当前合集」：把其他文件夹的视频补充进当前合集（可连续多选，合并播放）</li>
+<li>
+🔄 「刷新当前合集」更名为「更新当前合集」</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.5</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+🎨 顶部按钮统一灰色调与框线样式，按钮顺序调整（成就移至使用说明与备份/恢复之间）</li>
+<li>
+🎨 通知半透明底色 + 全局 UI 统一（下拉框/输入框/弹窗/按钮动效）</li>
+<li>
+🐛 修复删除确认弹窗打开期间视频自动切换会删错对象的问题（弹窗锁定目标）</li>
+<li>
+📢 启动扫描后提示视频数量增减；恢复备份后提示失效路径的合集</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.4</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+🎲 随机抽取加 600ms 冷却 + 播放令牌防竞态：连续快速点击不再报播放失败</li>
+<li>
+✏️ 重命名/加前缀输入框多重聚焦保障，输入框点击强制聚焦</li>
+<li>
+📁 旧存档多文件夹合集可一次关联多个文件夹（连续选择，取消结束）</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.3</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+⌨️ Delete 快捷键双通道保障（主进程 + 页面捕获），输入法/焦点任何状态下都稳定生效；输入框内完全放行，打字删字不受任何影响</li>
+<li>
+✏️ 修复重命名/加前缀输入框无法输入的问题：快捷键不再吞掉输入框按键</li>
+<li>
+🖱️ 双击视频不再暂停/播放：单击=暂停/播放，双击=仅全屏</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.2</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+🖱️ 弹窗不再"点击外部即消失"：创建合集等弹窗只能通过按钮或 Esc 主动关闭，误点不再丢失内容</li>
+<li>
+⌨️ Delete 快捷键改用物理键位判定，输入法/键盘布局不再影响，全局稳定生效</li>
+<li>
+✏️ 修复重命名/加前缀"文件占用中"：操作前先释放播放器占用，改完自动恢复播放并延续原进度</li>
+<li>
+🛡️ 打包流程升级：win-unpacked 中的存档打包前自动备份、打包后自动放回，更新版本存档永不丢失</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.1</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+⌨️ 快捷键全局化：Ctrl+D 抽取、Delete 删除在任意状态（播放中/视频聚焦/弹窗打开）下都生效，不再受焦点与防误触限制（输入框打字时 Delete 仍为删字符）</li>
+<li>
+📂 存档自动迁移：新版本启动时若未找到存档，自动检测同级目录中的旧版本存档，可一键导入，更新版本不再丢存档</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.0</span>
+  <span class="date">
+本次更新</span>
+</h3>
+<ul>
+<li>
+🐛 修复删除视频偶发失败（Operation was aborted）：先释放播放器句柄再移入回收站，失败自动重试；系统回收站不可用时提供"永久删除"确认兜底</li>
+<li>
+⌨️ 新增快捷键：Ctrl+D 随机抽取；Delete 在删除确认弹窗中确认删除；Esc 关闭弹窗</li>
+<li>
+🐛 修复刷新合集后当前播放视频悬空的问题（外部改名/删除后自动清理播放器）</li>
+<li>
+🐛 修复恢复备份后当前合集指向失效分类的问题</li>
+<li>
+🐛 弹窗打开时不再响应播放快捷键；输入框中打字不再误触播放控制</li>
+<li>
+⚡ 目录扫描改为异步，超大文件夹不再卡顿</li>
+<li>
+🛡️ 存档保护：刷新合集扫描到 0 个视频时不再直接清空列表（需确认）；数据初始化/恢复前自动备份到 data/backups/</li>
+<li>
+🛡️ 修复双击按钮导致弹窗"打开即消失"的问题；全屏时按 Esc 不再误关弹窗</li>
+</ul>
+<h3>
+<span class="version">
+版本 4.0</span>
+  <span class="date">
+EXE 版首发</span>
+</h3><ul>
+<li>
+🚀 全新 EXE 便携版：无需浏览器，绿色免安装，数据保存在 EXE 旁 data 文件夹，打包压缩即可带走</li>
+<li>
+🔓 移除全部授权逻辑：直接读写本地文件，打开即用，不再需要"一键授权"</li>
+<li>
+✏️ 新增：直接重命名当前视频文件（自动保留扩展名、防非法字符/重名）</li>
+<li>
+🏷️ 新增：给当前视频文件名加前缀，预设可自定义管理并持久保存</li>
+<li>
+🗑️ 新增：直接删除当前视频文件（移入系统回收站，可自行还原/清空）</li>
+<li>
+📂 新增：一键在资源管理器中定位当前视频</li>
+<li>
+💾 备份/恢复保留：格式兼容旧版备份，恢复后可用「关联文件夹」重新指定目录</li>
+<li>
+📊 点赞/点踩清单导出：直接导出绝对路径，不再询问盘符</li>
+<li>
+🌐 全部资源本地化：完全离线可用，启动更快</li>
+<li>
+🖼️ 新增应用图标、窗口大小记忆、单实例保护</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.0</span>
+ <span class="date">
+2026.05.28</span>
+</h3>
+<ul>
+<li>
+🎬 新版本首发！基于 Persistent Shuffle 3.1 重构，更名为"随机播放器"</li>
+<li>
+🎨 自定义透明控制栏：完全透明背景，鼠标悬停渐显，3秒自动隐藏，不再遮挡字幕</li>
+<li>
+🎛️ 控制栏功能：播放/暂停、进度条拖拽、时间显示、音量调节、静音、快进/快退10秒、全屏</li>
+<li>
+📹 视频格式智能检测：不兼容格式（MKV/AVI/FLV/MOV/WMV/TS）自动弹出转换建议</li>
+<li>
+📁 视频格式白名单扩展：新增 wmv/3gp/ts/m2ts/mts 支持</li>
+<li>
+🔄 视频播完后自动播放下一个</li>
+<li>
+⌨️ 键盘快捷键（Space/ArrowLeft/ArrowRight）联动控制栏显示</li>
+<li>
+🐛 修复 onVideoEnded 为空函数问题</li>
+<li>
+🐛 修复 blob URL 内存泄漏</li>
+<li>
+🐛 修复控制栏使用后不自动隐藏的问题</li>
+<li>
+🐛 修复视频全屏时未真正全屏的问题</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.1</span>
+ <span class="date">
+2026.05.28</span>
+</h3>
+<ul>
+<li>
+🖱️ 控制栏改为鼠标位置感应：鼠标移至视频底部80%区域才显示，移到中/上方自动隐藏</li>
+<li>
+🐛 修复全屏模式下控制栏不消失的问题</li>
+<li>
+🐛 修复所有弹窗关闭按钮可能失效的问题（改用 style.display 替代 Tailwind classList）</li>
+<li>
+⚡ 控制栏显示延迟优化：显示即时，隐藏300ms延迟防闪烁</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.2</span>
+ <span class="date">
+2026.05.28</span>
+</h3>
+<ul>
+<li>
+🐛 修复更新日志关闭按钮失效（错误调用 closeHistoryModal）</li>
+<li>
+🐛 修复控制栏常驻不隐藏的核心Bug（行内 opacity 样式泄漏）</li>
+<li>
+🐛 删除残留的旧版更新日志区块（v2.x/v3.x）</li>
+<li>
+🔢 版本号同步更新：页面标题、主标题、使用说明</li>
+<li>
+🎨 控制栏优化：默认 pointer-events:none，仅在显示时允许交互</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.3</span>
+ <span class="date">
+2026.05.28</span>
+</h3>
+<ul>
+<li>
+🐛 修复更新日志/播放历史的关闭按钮互换Bug（historyModal点关闭实际关了changelogModal）</li>
+<li>
+🐛 清理残留的重复弹窗区块（成就/备份/帮助各多一份）</li>
+<li>
+🔍 全量审查所有弹窗关闭按钮，确保一一对应</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.4</span>
+ <span class="date">
+2026.05.29</span>
+</h3>
+<ul>
+<li>
+📝 备份文件名从 shuffle_backup_ 改为 播放备份_</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.5</span>
+ <span class="date">
+2026.05.29</span>
+</h3>
+<ul>
+<li>
+🚀 恢复备份智能分组：按文件夹自动归类，同一文件夹的多个合集只需选一次目录</li>
+<li>
+📊 备份增加元数据（合集数、视频数、备份时间、文件夹列表）</li>
+<li>
+🛡️ 恢复前弹出确认对话框，显示备份摘要信息</li>
+<li>
+🐛 恢复失败时自动重置文件输入框</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.6</span>
+ <span class="date">
+2026.05.29</span>
+</h3>
+<ul>
+<li>
+🐛 修复恢复备份后备份/恢复按钮无法点击的问题（弹窗卡死）</li>
+<li>
+🛡 智能授权增加 try-catch 保护，出错时自动降级为提示手动操作</li>
+<li>
+⚡ 恢复后先关闭弹窗再执行文件夹授权，避免界面阻塞</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.7</span>
+ <span class="date">
+2026.05.29</span>
+</h3>
+<ul>
+<li>
+🐛 修复备份/恢复、使用说明、策略变更三个弹窗打不开的Bug（v1.1修复遗漏的show函数）</li>
+<li>
+🔍 全盘审查所有弹窗show/close函数，确保全部使用style.display</li>
+<li>
+🛡 新增弹窗遮罩点击关闭（点击黑色背景即可关闭任意弹窗）</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.8</span>
+ <span class="date">
+2026.05.29</span>
+</h3>
+<ul>
+<li>
+✅ 恢复备份后不再自动弹出文件夹授权窗口，改为提示用户手动点击“存档授权”</li>
+<li>
+💡 “存档授权”本身就是为文件夹选取授权设计的，恢复后由用户自主决定何时授权</li>
+</ul>
+<h3>
+<span class="version">
+版本 1.9</span>
+ <span class="date">
+2026.05.29</span>
+</h3>
+<ul>
+<li>
+🐛 彻底修复页面加载时弹出文件夹选择器的Bug（restoreAllPermissions在DOMContentLoaded中触发smartBatchAuthorize）</li>
+<li>
+🔄 revert restoreAllPermissions为原始行为：仅检查已有handles，不自动打开选择器</li>
+<li>
+✅ 恢复备份后完全静默，不再有任何弹窗或路径选择</li>
+</ul>
+<h3>
+<span class="version">
+版本 2.0</span>
+ <span class="date">
+2026.05.29</span>
+</h3>
+<ul>
+<li>
+🐛 修复切换合集时右下角弹出"视频无法播放"报错的问题</li>
+<li>
+🎉 里程碑版本：从原始Persistent Shuffle 3.1经20项修复迭代至v2.0</li>
+</ul>
+</div>
+<div class="flex justify-end pt-4 mt-4 border-t border-gray-700 flex-shrink-0">
+<button onclick="closeChangelogModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="backupRestoreModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[36rem] border border-gray-700 shadow-2xl">
+<h3 class="text-xl font-bold text-white mb-4 flex items-center">
+<svg class="w-6 h-6 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+</svg>
+备份/恢复</h3>
+<div class="backup-grid">
+<div class="backup-option" onclick="backupData()">
+<div class="icon">
+💾</div>
+<div class="label">
+备份</div>
+<div class="text-xs text-gray-400 mt-2">
+下载JSON备份文件</div>
+</div>
+<div class="backup-option" onclick="restoreData()">
+<div class="icon">
+📂</div>
+<div class="label">
+恢复</div>
+<div class="text-xs text-gray-400 mt-2">
+选择备份文件恢复</div>
+</div>
+<div class="backup-option" onclick="relinkCategoryRoots()">
+<div class="icon">
+📁</div>
+<div class="label">
+关联文件夹</div>
+<div class="text-xs text-gray-400 mt-2">
+为恢复后无路径的合集选择文件夹</div>
+</div>
+</div>
+<div class="flex justify-end pt-4 mt-4 border-t border-gray-700">
+<button onclick="closeBackupRestoreModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="achievementsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[48rem] border border-gray-700 shadow-2xl max-h-[80vh] overflow-y-auto">
+<h3 class="text-xl font-bold text-white mb-4 flex items-center">
+<svg class="w-6 h-6 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l3.5 7L16 11l-5 5 1.5 7L12 17.5 7.5 23 9 16 4 11l7-1L12 3 5 3z"/>
+</svg>
+成就</h3>
+<div class="achievement-tabs">
+<span class="achievement-tab active" data-category="basic">
+基础</span>
+<span class="achievement-tab" data-category="advanced">
+高级</span>
+<span class="achievement-tab" data-category="hidden">
+隐藏</span>
+</div>
+<div id="achievementsList" class="space-y-1">
+</div>
+<div class="flex justify-end pt-4 mt-4 border-t border-gray-700">
+<button onclick="closeAchievementsModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="helpModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-4 w-[48rem] border border-gray-700 shadow-2xl max-h-[80vh] overflow-y-auto help-modal-inner">
+<h3 class="text-lg font-bold text-white mb-1 flex items-center">
+<svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+</svg>
+随机播放器 5.2（桌面版）使用说明</h3>
+<div class="help-content">
+<h2>
+这是什么？</h2>
+<p>
+这是一款 Windows 本地视频随机播放器（绿色便携版）。它能够扫描您电脑中的文件夹（包括多级子目录），以"不放回抽卡"的形式随机播放视频。数据保存在 EXE 旁的 data 文件夹中，整个文件夹打包压缩即可带走，换电脑解压即用。</p>
+<h2>
+第一次使用</h2>
+<p>
+点击左侧「创建合集」→ 添加存放视频的文件夹（可添加多个，自动递归子目录）→ 输入合集名称 → 创建合集 → 点击「随机抽取」即可开始播放。<br>
+💡 也可以直接把文件夹拖进窗口创建合集。</p>
+<h2>
+数据在哪？</h2>
+<p>
+所有数据（合集、观看记录、成就、点赞、前缀预设等）保存在 <span class="note">EXE 同目录下的 data 文件夹</span>。想备份/迁移：直接复制整个文件夹（或打包 zip）即可。点顶部绿色「数据目录就绪」可查看具体路径。</p>
+<h2>
+快捷键</h2>
+<p>
+空格：播放/暂停 ｜ ←/→：快退/快进10秒 ｜ <b>Ctrl+D：随机抽取</b>（播放中随时可用） ｜ <b>Delete：删除当前视频</b>（先弹出确认，弹窗中再按一次即确认删除） ｜ Esc：关闭弹窗</p>
+<h2>
+按钮介绍：</h2>
+<p>
+随机抽取：从当前合集剩余未看视频中随机抽取播放（播完自动播下一个）<br>
+✏️ 重命名/前缀：修改当前视频文件名，可只改名、只加前缀或两者同时（前缀预设可管理）<br>
+🏷️ 加标签：为视频打标签（MAX/HIGH/LOW 等，仅记录在存档中，不修改文件名），可管理标签预设<br>
+🗑️ 删除：把当前视频文件移入系统回收站（可到 Windows 回收站还原）<br>
+📂 所在文件夹：在资源管理器中定位当前视频<br>
+更新当前合集：重新扫描文件夹，同步新增/删除的视频<br>
+补充当前合集：把其他文件夹的视频补充进当前合集（可多选，合并为一个合集）<br>
+创建视频合集：选择文件夹创建合集（可多选，自动递归子目录）<br>
+创建标签合集：勾选标签自动聚合对应视频（动态跟随，只提供重置与删除）<br>
+重置当前合集：将当前合集所有视频恢复为"未观看"状态<br>
+删除当前合集：删除该合集（不影响视频文件）<br>
+数据初始化：删除所有合集并重置所有数据（包括成就、历史、点赞等）<br>
+💾📂 备份/恢复：备份数据为 JSON 文件；恢复后可点击「关联文件夹」为合集重新指定视频目录<br>
+⚙️ 策略变更：默认 / 点赞加权 / 短片优先 / 长片优先<br>
+排行统计：按观看指数显示本周/本月/本年TOP10影片（点击可播放）<br>
+🏆 成就：查看已解锁成就及进度<br>
+👍 点赞清单 / 👎 点踩清单：显示点赞/点踩过的视频及次数，可导出路径清单<br>
+📋 浏览历史：最近20部影片及观看时间<br>
+重置统计（在排行统计内）：重置播放次数和浏览历史，不影响点赞/点踩/成就<br>
+📊 生成报告（在排行统计内）：根据当前周期生成观影报告并保存为图片</p>
+<h2>
+常见问题（Q&A）</h2>
+<p>
+<strong>
+Q1：EXE 需要安装吗？换电脑怎么迁移？</strong>
+<br>
+A：完全绿色免安装。把整个程序文件夹打包复制到新电脑即可，data 文件夹里的数据（合集、记录、成就）全部跟随。</p>
+<p>
+<strong>
+Q2：备份备份的是什么？为什么不包含视频文件？</strong>
+<br>
+A：备份的是视频路径、合集名称和观看记录等数据，生成很小的 JSON 文件。视频文件仍保存在原位置。</p>
+<p>
+<strong>
+Q3：如何恢复数据？</strong>
+<br>
+A：备份/恢复弹窗 →「恢复」→ 选择 JSON 备份文件 → 确认后数据载入。若备份中的视频目录已失效，点击弹窗内「关联文件夹」重新选择目录即可。</p>
+<p>
+<strong>
+Q4：支持哪些视频格式？</strong>
+<br>
+A：mp4、webm、ogg、mov 可直接播放；mkv、avi、flv、wmv、ts 等格式本播放器不支持，可转码为 MP4 后播放。</p>
+<p>
+<strong>
+Q5：重命名/加前缀会改坏文件吗？</strong>
+<br>
+A：不会。扩展名被强制保留，非法字符、重名、系统保留名都会被拦截；改名失败不影响原文件。</p>
+<p>
+<strong>
+Q6：删除的视频还能找回吗？</strong>
+<br>
+A：能。删除只是把文件移入 Windows 系统回收站，可到回收站还原或彻底清空。</p>
+<p>
+<strong>
+Q7：我把视频文件移动位置了怎么办？</strong>
+<br>
+A：点击「更新当前合集」，系统会重新扫描并移除已失效的视频；若整个文件夹都移动了，请删除合集后重新创建。</p>
+<p>
+<strong>
+Q8：单个文件夹视频太多会卡吗？</strong>
+<br>
+A：首次扫描时可能有短暂等待（数千个文件约几秒），扫描完成后正常使用。建议按类型分多个合集。</p>
+<p>
+<strong>
+Q9：观看指数是什么？</strong>
+<br>
+A：观看指数综合反映您对视频的喜好程度，计算公式为：指数 = √(播放次数) × (调整后拖拽 × 1 + 点赞 × 0.9)，其中调整后拖拽 = 拖拽次数 / (1 + √文件大小MB)。该数值仅用于内部排序，不直接显示。</p>
+</div>
+<div class="flex justify-end pt-1 mt-1 border-t border-gray-700">
+<button onclick="closeHelpModal()" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="strategyModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-80 border border-gray-700 shadow-2xl">
+<h3 class="text-xl font-bold text-white mb-4 flex items-center">
+<svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+</svg>
+选择抽取策略</h3>
+<div class="space-y-2">
+<div class="strategy-option p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors" data-strategy="default" onclick="selectStrategy('default')">
+<div class="font-medium text-white">
+默认设置</div>
+<div class="text-xs text-gray-400">
+标准不放回，无特殊优先级</div>
+</div>
+<div class="strategy-option p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors" data-strategy="liked" onclick="selectStrategy('liked')">
+<div class="font-medium text-white">
+点赞加权</div>
+<div class="text-xs text-gray-400">
+每2次标准后，第3次在已点赞中抽取</div>
+</div>
+<div class="strategy-option p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors" data-strategy="short" onclick="selectStrategy('short')">
+<div class="font-medium text-white">
+短片优先</div>
+<div class="text-xs text-gray-400">
+每2次标准后，第3次在小于100MB中抽取</div>
+</div>
+<div class="strategy-option p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors" data-strategy="long" onclick="selectStrategy('long')">
+<div class="font-medium text-white">
+长片优先</div>
+<div class="text-xs text-gray-400">
+每2次标准后，第3次在大于1500MB中抽取</div>
+</div>
+</div>
+<div class="flex justify-end pt-4 mt-4 border-t border-gray-700">
+<button onclick="closeStrategyModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="renameModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[34rem] border border-gray-700 shadow-2xl">
+<h3 class="text-xl font-bold text-white mb-1 flex items-center">
+<svg class="w-5 h-5 mr-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+</svg>
+重命名 / 加前缀</h3>
+<div id="renameOldName" class="text-xs text-gray-500 mb-3 break-all">
+</div>
+<div class="space-y-3">
+<div>
+<label class="text-sm text-gray-400 block mb-1">
+前缀（可留空）</label>
+<div class="flex space-x-2">
+<select id="prefixPresetSelect" class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+<option value="">
+（不使用预设，手动输入）</option>
+</select>
+<button onclick="useSelectedPreset()" class="px-3 py-2 bg-cyan-900/50 hover:bg-cyan-900/80 border border-cyan-800/50 rounded-lg text-sm text-cyan-300 transition-colors">
+使用</button>
+<button onclick="showPrefixPresetsModal()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+管理预设</button>
+</div>
+<input type="text" id="prefixInput" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 mt-2" placeholder="例如：[TV] 或 收藏-（留空则不添加前缀）">
+</div>
+<div>
+<label class="text-sm text-gray-400 block mb-1">
+新名称（可留空 = 保留原名）</label>
+<input type="text" id="renameInput" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="输入新的文件名（自动保留扩展名）">
+</div>
+<div id="renamePreview" class="text-xs text-gray-400 break-all">
+</div>
+</div>
+<div class="flex justify-end space-x-2 pt-4">
+<button onclick="closeRenameModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+取消</button>
+<button onclick="applyRename()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg text-sm text-white font-medium transition-colors">
+确定</button>
+</div>
+</div>
+</div>
+<div id="tagsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[34rem] border border-gray-700 shadow-2xl">
+<h3 class="text-xl font-bold text-white mb-1 flex items-center">
+<svg class="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7a1.994 1.994 0 01-.586-1.414V7a4 4 0 014-4z"/>
+</svg>
+加标签</h3>
+<div id="tagsOldName" class="text-xs text-gray-500 mb-3 break-all">
+</div>
+<p class="text-sm text-gray-400 mb-2">
+点击标签卡片添加/取消（仅记录在存档中，不修改文件名）：</p>
+<div id="tagsList" class="flex flex-wrap gap-2 mb-3">
+</div>
+<div class="flex justify-end gap-2">
+<button onclick="showTagsPresetsModal()" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+管理标签预设</button>
+<button onclick="closeTagsModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="tagsPresetsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[32rem] border border-gray-700 shadow-2xl">
+<h3 class="text-xl font-bold text-white mb-4">
+🏷️ 管理标签预设</h3>
+<div id="tagsPresetList" class="space-y-2 max-h-60 overflow-y-auto mb-3">
+</div>
+<div class="flex space-x-2">
+<input type="text" id="tagsNewPreset" class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="新标签，如：LOW">
+<button onclick="addTagsPreset()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm text-white font-medium transition-colors">
+添加</button>
+</div>
+<div class="flex justify-end pt-4">
+<button onclick="closeTagsPresetsModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="tagCollectionModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[34rem] border border-gray-700 shadow-2xl">
+<h3 class="text-xl font-bold text-white mb-1 flex items-center">
+<svg class="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7a1.994 1.994 0 01-.586-1.414V7a4 4 0 014-4z"/>
+</svg>
+创建标签合集</h3>
+<p class="text-sm text-gray-400 mb-3">
+勾选一个或多个标签，将自动聚合所有带这些标签的视频（动态跟随，标签变化合集自动同步）：</p>
+<div id="tagCollectionTags" class="flex flex-wrap gap-2 mb-3">
+</div>
+<div>
+<label class="text-sm text-gray-400 block mb-1">
+合集名称</label>
+<input type="text" id="tagCollectionName" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="例如：MAX">
+</div>
+<div class="flex justify-end space-x-2 pt-4">
+<button onclick="closeTagCollectionModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+取消</button>
+<button onclick="createTagCollection()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm text-white font-medium transition-colors">
+创建合集</button>
+</div>
+</div>
+</div>
+<div id="prefixPresetsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[32rem] border border-gray-700 shadow-2xl">
+<h3 class="text-xl font-bold text-white mb-4">
+🏷️ 管理前缀预设</h3>
+<div id="prefixPresetList" class="space-y-2 max-h-60 overflow-y-auto mb-3">
+</div>
+<div class="flex space-x-2">
+<input type="text" id="prefixNewPreset" class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500" placeholder="新预设内容，如：[电影] ">
+<button onclick="addPrefixPreset()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm text-white font-medium transition-colors">
+添加</button>
+</div>
+<div class="flex justify-end pt-4">
+<button onclick="closePrefixPresetsModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+关闭</button>
+</div>
+</div>
+</div>
+<div id="deleteVideoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[34rem] border border-gray-700 shadow-2xl">
+<h3 class="text-xl font-bold text-white mb-3 flex items-center">
+<svg class="w-5 h-5 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+</svg>
+删除视频</h3>
+<div id="deleteVideoName" class="text-sm text-white font-medium break-all mb-1">
+</div>
+<div id="deleteVideoPath" class="text-xs text-gray-500 break-all mb-4">
+</div>
+<p class="text-sm text-gray-400 bg-red-900/20 border border-red-800/40 rounded-lg p-3">
+⚠️ 该文件将被移入<b class="text-red-300">系统回收站</b>。如需找回，请到 Windows 回收站中还原；如需彻底删除，请在系统回收站中清空。</p>
+<div class="flex justify-end space-x-2 pt-4">
+<button onclick="closeDeleteVideoModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+取消</button>
+<button onclick="doDeleteCurrentVideo()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm text-white font-medium transition-colors">
+移入回收站</button>
+</div>
+</div>
+</div>
+<div id="confirmDialogModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[34rem] border border-gray-700 shadow-2xl">
+<h3 id="confirmDialogTitle" class="text-xl font-bold text-white mb-3">
+确认操作</h3>
+<p id="confirmDialogMessage" class="text-sm text-gray-300 whitespace-pre-line break-all mb-4">
+</p>
+<div class="flex justify-end gap-2 pt-2">
+<button onclick="confirmDialogCancel()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+取消</button>
+<button onclick="confirmDialogOK()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm text-white font-medium transition-colors">
+确定</button>
+</div>
+</div>
+</div>
+<div id="promptDialogModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[32rem] border border-gray-700 shadow-2xl">
+<h3 id="promptDialogTitle" class="text-xl font-bold text-white mb-3">
+输入内容</h3>
+<p id="promptDialogMessage" class="text-sm text-gray-400 mb-3 break-all">
+</p>
+<input type="text" id="promptDialogInput" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+<div class="flex justify-end gap-2 pt-4">
+<button onclick="promptDialogCancel()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+取消</button>
+<button onclick="promptDialogOK()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm text-white font-medium transition-colors">
+确定</button>
+</div>
+</div>
+</div>
+<div id="migrateModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+<div class="bg-gray-800 rounded-2xl p-6 w-[38rem] border border-gray-700 shadow-2xl">
+<h3 class="text-xl font-bold text-white mb-2 flex items-center">
+<svg class="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+</svg>
+检测到旧版本存档</h3>
+<p class="text-sm text-gray-400 mb-3">
+当前目录没有存档，但在以下位置发现了旧版本数据。导入后即可延续原有合集与观看记录（旧文件不会被删除）：</p>
+<div id="migrateOptions" class="space-y-2 max-h-48 overflow-y-auto mb-3">
+</div>
+<p class="text-xs text-gray-500">
+如果不需要旧数据，点「忽略」继续使用全新存档。</p>
+<div class="flex justify-end gap-2 pt-4">
+<button onclick="closeMigrateModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-200 transition-colors">
+忽略</button>
+<button onclick="doImportMigration()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm text-white font-medium transition-colors">
+导入选中存档</button>
+</div>
+</div>
+</div>
+<div id="toastContainer">
+</div>
+<script>
+
+const $=document.getElementById.bind(document);
+
+const S={
+categories:[],activeCategoryId:null,currentVideo:null,history:[],tempCollectionPaths:[],settings:{
+prefixPresets:['[TV] ','[收藏] '],tags:['MAX','HIGH','LOW'],lastStrategy:'default'}
+,achievements:{
+stats:{
+totalPlays:0,totalCollections:0,totalResets:0,totalRefreshes:0,consecutiveDays:0,lastPlayDate:null,totalSeeks:0,categoryPlays:{
+}
+,totalLikes:0,totalDislikes:0,specialPlays:0,logoClickCount:0,nightPlays:0}
+,unlocked:{
+}
+}
+,strategy:'default',strategyCounter:0}
+;
+
+const ACHIEVEMENTS={
+basic:[{
+id:'viewer',name:'观影达人',icon:'👋',levels:[20,50,200,500,1000],desc:'累计播放视频次数'}
+,{
+id:'collector',name:'收藏家',icon:'📁',levels:[1,5,20],desc:'创建合集数量'}
+,{
+id:'reset',name:'重置控',icon:'♻️',levels:[1,10,100],desc:'重置合集次数'}
+,{
+id:'diligent',name:'勤奋好学',icon:'🔄',levels:[3,7,50],desc:'刷新合集次数'}
+],advanced:[{
+id:'persistent',name:'坚持不懈',icon:'📅',levels:[3,7,30,365],desc:'连续每天至少观看一个视频的天数'}
+,{
+id:'seeker',name:'掌控进度',icon:'🎚️',levels:[10,50,500],desc:'拖拽进度条次数'}
+,{
+id:'loyal',name:'情有独钟',icon:'💘',levels:[10,50,500],desc:'同一合集中累计观看视频次数'}
+,{
+id:'liker',name:'点赞狂魔',icon:'👍',levels:[1,10,100],desc:'累计点赞次数'}
+,{
+id:'precise',name:'精准定位',icon:'🎯',levels:[1,10,50],desc:'从浏览历史/点赞清单/排行统计中点击播放的次数'}
+],hidden:[{
+id:'faithful',name:'忠实用户',icon:'👑',level:null,desc:'成就总等级超过18级'}
+,{
+id:'revisit',name:'回味无穷',icon:'🍿',level:null,desc:'同一部视频累计点赞超过10次'}
+,{
+id:'dev',name:'开发模式',icon:'🛠️',level:null,desc:'点击左上角图标5次'}
+,{
+id:'squirrel',name:'松鼠党',icon:'🐿️',level:null,desc:'单个合集视频超过1000个'}
+,{
+id:'owl',name:'夜猫子',icon:'🦉',level:null,desc:'累计在0:00-5:00观看10次'}
+]}
+;
+
+let sortableInstance=null;
+
+const showToast=(message,type='info',duration=3000)=>{
+const container=$('toastContainer'),toast=document.createElement('div');
+toast.className=`toast-item ${type}`;
+toast.textContent=message;
+container.appendChild(toast);
+setTimeout(()=>{
+toast.style.opacity='0';
+toast.style.transform='translateY(10px)';
+setTimeout(()=>toast.remove(),300)}
+,duration)}
+;
+
+const unlockAchievement=achievementName=>{
+if(!S.achievements.unlocked[achievementName]){
+const now=new Date().toLocaleString('zh-CN',{
+hour12:false}
+);
+S.achievements.unlocked[achievementName]=now;
+showToast(`🏆 解锁新成就：${achievementName}`,'success',5000);
+saveAchievementsToDB()}
+}
+;
+
+const checkAchievements=()=>{
+const stats=S.achievements.stats,unlocked=S.achievements.unlocked;
+let newUnlock=!1;
+ACHIEVEMENTS.basic.forEach(ach=>{
+const levels=ach.levels;
+let current=0;
+ach.id==='viewer'&&(current=stats.totalPlays);
+ach.id==='collector'&&(current=stats.totalCollections);
+ach.id==='reset'&&(current=stats.totalResets);
+ach.id==='diligent'&&(current=stats.totalRefreshes);
+for(let i=0;
+i<levels.length;
+i++){
+const levelName=`${ach.name} Lv.${i+1}`;
+!unlocked[levelName]&&current>=levels[i]&&(unlockAchievement(levelName),newUnlock=!0)}
+}
+);
+ACHIEVEMENTS.advanced.forEach(ach=>{
+const levels=ach.levels;
+let current=0;
+ach.id==='persistent'&&(current=stats.consecutiveDays);
+ach.id==='seeker'&&(current=stats.totalSeeks);
+ach.id==='loyal'&&(current=Math.max(...Object.values(stats.categoryPlays),0));
+ach.id==='liker'&&(current=stats.totalLikes);
+ach.id==='precise'&&(current=stats.specialPlays);
+for(let i=0;
+i<levels.length;
+i++){
+const levelName=`${ach.name} Lv.${i+1}`;
+!unlocked[levelName]&&current>=levels[i]&&(unlockAchievement(levelName),newUnlock=!0)}
+}
+);
+let totalLevel=0;
+ACHIEVEMENTS.basic.forEach(ach=>{
+for(let i=0;
+i<ach.levels.length;
+i++)unlocked[`${ach.name} Lv.${i+1}`]&&totalLevel++}
+);
+ACHIEVEMENTS.advanced.forEach(ach=>{
+for(let i=0;
+i<ach.levels.length;
+i++)unlocked[`${ach.name} Lv.${i+1}`]&&totalLevel++}
+);
+!unlocked['忠实用户']&&totalLevel>18&&(unlockAchievement('忠实用户'),newUnlock=!0);
+if(!unlocked['回味无穷']){
+let found=!1;
+S.categories.forEach(cat=>{
+cat.videos.forEach(v=>{
+v.likeCount>=10&&(found=!0)}
+)}
+);
+found&&(unlockAchievement('回味无穷'),newUnlock=!0)}
+!unlocked['开发模式']&&stats.logoClickCount>=5&&(unlockAchievement('开发模式'),newUnlock=!0);
+if(!unlocked['松鼠党']){
+let found=!1;
+S.categories.forEach(cat=>{
+cat.videos.length>=1000&&(found=!0)}
+);
+found&&(unlockAchievement('松鼠党'),newUnlock=!0)}
+!unlocked['夜猫子']&&(stats.nightPlays||0)>=10&&(unlockAchievement('夜猫子'),newUnlock=!0)}
+;
+
+// P1: 存储层 — 用本地 JSON 存储替代 IndexedDB（保留原函数名，调用点不动）
+// ===== 本地 JSON 数据存储（替代 IndexedDB）=====
+// 5.0: 防抖写入（合并高频保存，避免播放/点赞等高频操作反复全量写盘）
+let _saveTimer=null;
+let _pendingPayload=null;
+const buildPersistPayload=()=>{
+const payload={
+version:12,
+categories:S.categories.map(cat=>{
+const metas=cat.videos.map(v=>({
+id:v.id,name:v.name,path:v.path||'',rootName:v.rootName||'',relPath:v.relPath||'',size:v.size,watched:v.watched,watchDuration:0,lastWatchTime:null,watchCount:v.watchCount||0,likeCount:v.likeCount||0,dislikeCount:v.dislikeCount||0,playTimestamps:v.playTimestamps||[],likeTimestamps:v.likeTimestamps||[],seekTimestamps:v.seekTimestamps||[],tags:v.tags||[]}
+));
+return {
+id:cat.id,name:cat.name,type:cat.type||'single',roots:cat.roots||[],tags:cat.tags||[],videos:metas,order:cat.order||0}
+}
+),
+achievements:S.achievements,
+settings:{
+prefixPresets:S.settings.prefixPresets||[],tags:S.settings.tags||[],lastStrategy:S.strategy,lastPrefix:S.settings.lastPrefix||''}
+}
+;
+return payload}
+;
+
+const persistAll=()=>{
+_pendingPayload=buildPersistPayload();
+if(_saveTimer)clearTimeout(_saveTimer);
+return new Promise(resolve=>{
+_saveTimer=setTimeout(()=>{
+_saveTimer=null;
+const payload=_pendingPayload;
+_pendingPayload=null;
+window.api.saveData(payload).then(()=>resolve()).catch(err=>{
+console.warn('保存数据失败',err);
+showToast('数据保存失败: '+err.message,'error',4000);
+resolve()}
+);
+},400)}
+);
+}
+;
+
+// 退出前同步落盘（防抖窗口内的最后一次变更不丢失）
+window.addEventListener('beforeunload',()=>{
+if(_pendingPayload){
+try{
+window.api.saveDataSync(_pendingPayload)}
+catch(e){
+console.warn('退出保存失败',e)}
+_pendingPayload=null}
+}
+);
+
+const saveAchievementsToDB=()=>persistAll();
+const saveCategoryToDB=()=>persistAll();
+const deleteCategoryFromDB=id=>{
+const idx=S.categories.findIndex(c=>c.id===id);
+if(idx!==-1)S.categories.splice(idx,1);
+// 5.0: 删除合集后同步标签合集（引用的视频随之移除）
+syncTagCategories();
+return persistAll()}
+;
+
+const initDB=async()=>{
+const data=await window.api.loadData();
+if(data){
+if(data.achievements&&data.achievements.stats)S.achievements=data.achievements;
+if(data.settings){
+if(Array.isArray(data.settings.prefixPresets))S.settings.prefixPresets=data.settings.prefixPresets;
+if(Array.isArray(data.settings.tags))S.settings.tags=data.settings.tags;
+if(data.settings.lastStrategy)S.strategy=data.settings.lastStrategy;
+if(data.settings.lastPrefix)S.settings.lastPrefix=data.settings.lastPrefix}
+}
+return true}
+;
+
+const loadCategories=async()=>{
+const data=await window.api.loadData();
+const stored=data&&data.categories?data.categories:[];
+S.categories=stored.map(item=>({
+id:item.id,name:item.name,type:item.type||'single',roots:Array.isArray(item.roots)?item.roots:[],tags:Array.isArray(item.tags)?item.tags:[],videoMetas:item.videos||item.videoMetas||[],videos:[],currentPool:[],order:item.order||0,persistent:!0,permissionRestored:!1}
+)).sort((a,b)=>(a.order||0)-(b.order||0));
+S.categories.length>0&&!S.activeCategoryId&&(S.activeCategoryId=S.categories[0].id);
+// EXE 版：直接扫描根目录，无需授权；对比上次记录提示视频增减
+const changes=[];
+for(const cat of S.categories){
+if(cat.type==='tags'){
+cat.permissionRestored=!0;
+continue}
+if(cat.roots&&cat.roots.length>0){
+const oldCount=cat.videoMetas.length;
+await loadVideosFromHandles(cat);
+cat.permissionRestored=!0;
+const delta=cat.videos.length-oldCount;
+if(delta!==0)changes.push(`${cat.name} ${delta>0?'+':''}${delta}`)}
+else cat.permissionRestored=!1}
+// 标签合集动态聚合（必须在普通合集扫描完成后）
+syncTagCategories();
+if(changes.length>0){
+setTimeout(()=>showToast(`扫描完成，视频数量变化：${changes.join('、')}`,'info',7000),1000)}
+return true}
+;
+// P2: 扫描视频 — 绝对路径扫描 + 元数据匹配
+const loadVideosFromHandles=async(category)=>{
+const videos=[],savedMetas=category.videoMetas||[],exactMap=new Map,fallbackMap=new Map;
+savedMetas.forEach(meta=>{
+if(meta.path&&meta.path.includes(':'))exactMap.set(meta.path,meta);
+const fk=`${meta.name}|${meta.size}`;
+if(!fallbackMap.has(fk))fallbackMap.set(fk,meta)}
+);
+for(const root of (category.roots||[])){
+let found=[];
+try{
+found=await window.api.scanFolder(root)}
+catch(err){
+showToast(`无法扫描目录 ${root}: ${err.message}`,'warning')}
+const rootName=root.split(/[\\/]+/).filter(Boolean).pop()||root;
+found.forEach(f=>{
+let saved=exactMap.get(f.path);
+if(!saved){
+const fk=`${f.name}|${f.size}`;
+saved=fallbackMap.get(fk)}
+if(!saved){
+saved=savedMetas.find(m=>m.relPath&&m.relPath===f.relPath&&m.name===f.name)}
+videos.push({
+id:saved?saved.id:Math.random().toString(36).substr(2,9),
+name:f.name,path:f.path,relPath:f.relPath,rootName:rootName,
+size:f.size,watched:saved?saved.watched:!1,
+watchCount:saved?saved.watchCount||0:0,
+likeCount:saved?saved.likeCount||0:0,
+dislikeCount:saved?saved.dislikeCount||0:0,
+playTimestamps:saved?saved.playTimestamps||[]:[],
+likeTimestamps:saved?saved.likeTimestamps||[]:[],
+seekTimestamps:saved?saved.seekTimestamps||[]:[],
+tags:saved?saved.tags||[]:[]
+}
+)}
+);
+}
+category.videos=videos;
+category._matchCount=videos.length;
+category.currentPool=category.videos.filter(v=>!v.watched);
+// 5.0: 任何重扫后同步标签合集（动态聚合保持一致）
+syncTagCategories()}
+;
+// 空补丁（用于删除代码块）
+// P3: 合集创建相关函数 — 句柄改为绝对路径
+const closeCollectionModal=()=>{
+blurActive();
+const m=$('collectionModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const openCollectionCreator=()=>{
+S.tempCollectionPaths=[];
+updateSelectedDirsList();
+$('collectionNameInput').value='';
+const m=$('collectionModal');
+S._lastModalOpen=Date.now();
+m.style.display='';
+m.classList.remove('hidden');
+m.classList.add('flex')}
+;
+
+const updateSelectedDirsList=()=>{
+const listDiv=$('selectedDirsList'),countSpan=$('selectedDirCount'),paths=S.tempCollectionPaths;
+countSpan.textContent=paths.length;
+if(paths.length===0)listDiv.innerHTML='<p class="text-gray-500 italic">暂无目录</p>';
+else{
+let html='';
+paths.forEach((p,idx)=>{
+const name=p.split(/[\\/]+/).filter(Boolean).pop()||p;
+html+=`<div class="flex justify-between items-center py-1 border-b border-gray-700 last:border-0"><span class="truncate">${name}</span><button onclick="removeCollectionDir(${idx})" class="text-red-400 hover:text-red-300 text-xs ml-2">✕</button></div>`});
+listDiv.innerHTML=html}}
+;
+
+const addDirectoryToCollection=async()=>{
+const dir=await window.api.pickFolder();
+if(!dir)return;
+if(S.tempCollectionPaths.includes(dir)){
+showToast('该目录已存在，请勿重复添加','warning');
+return}
+S.tempCollectionPaths.push(dir);
+updateSelectedDirsList()}
+;
+
+const removeCollectionDir=index=>{
+S.tempCollectionPaths.splice(index,1);
+updateSelectedDirsList()}
+;
+
+const clearCollectionDirs=()=>{
+S.tempCollectionPaths=[];
+updateSelectedDirsList()}
+;
+
+const createCollection=async()=>{
+const name=$('collectionNameInput').value.trim();
+if(!name){
+showToast('请输入合集名称','warning');
+return}
+if(S.tempCollectionPaths.length===0){
+showToast('请至少添加一个目录','warning');
+return}
+if(S.categories.some(c=>c.name===name)){
+showToast('该名称已存在，请换一个','warning');
+return}
+const maxOrder=S.categories.reduce((max,cat)=>Math.max(max,cat.order||0),-1);
+const newCategory={
+id:Date.now().toString(),name:name,type:'collection',roots:[...S.tempCollectionPaths],videos:[],currentPool:[],order:maxOrder+1,persistent:!0,permissionRestored:!1}
+;
+showToast(`开始扫描合集 "${name}" 中的目录...`,'info',2000);
+await loadVideosFromHandles(newCategory);
+newCategory.permissionRestored=!0;
+S.categories.push(newCategory);
+S.activeCategoryId=newCategory.id;
+S.achievements.stats.totalCollections++;
+checkAchievements();
+await saveAchievementsToDB();
+await saveCategoryToDB(newCategory);
+closeCollectionModal();
+updateConnectionStatus();
+renderTabs();
+updateUI();
+if(newCategory.videos.length>0)showToast(`合集创建成功，共 ${newCategory.videos.length} 个视频`,'success');
+else showToast('合集中没有找到视频文件，可稍后点击「更新当前合集」重新扫描','warning')}
+;
+// P5: 关联文件夹（替代原"存档授权"）
+// 为合集选择根文件夹：可连续选取多个文件夹（取消结束），支持多文件夹合集
+const pickRootsForCategory=async(cat)=>{
+showToast(`为合集 "${cat.name}" 选择文件夹（可多次选择添加多个，取消结束）`,'info',9000);
+const dirs=[];
+while(true){
+const dir=await window.api.pickFolder();
+if(!dir)break;
+if(dirs.includes(dir))break;
+dirs.push(dir)}
+return dirs}
+;
+
+const relinkCategoryRoots=async()=>{
+const targets=S.categories.filter(c=>!(c.roots&&c.roots.length>0)||!c.permissionRestored);
+if(targets.length===0){
+showToast('所有合集都已关联文件夹','info');
+closeBackupRestoreModal();
+return}
+showToast(`需要为 ${targets.length} 个合集关联文件夹（可取消跳过）`,'info',6000);
+let successCount=0;
+for(const cat of targets){
+const dirs=await pickRootsForCategory(cat);
+if(dirs.length===0){
+showToast(`已跳过 "${cat.name}"`,'warning');
+continue}
+cat.roots=dirs;
+await loadVideosFromHandles(cat);
+cat.permissionRestored=!0;
+await saveCategoryToDB(cat);
+if(cat.videos.length>0)successCount++;
+else showToast(`"${cat.name}" 未找到视频文件，可稍后重新关联`,'warning')}
+updateConnectionStatus();
+renderTabs();
+updateUI();
+closeBackupRestoreModal();
+showToast(`关联完成，成功 ${successCount}/${targets.length} 个合集`,'success')}
+;
+// 空补丁（用于删除代码块）
+const initSortable=()=>{
+if(sortableInstance)sortableInstance.destroy();
+const container=$('categoryTabs');
+if(!container)return;
+sortableInstance=new Sortable(container,{
+animation:150,ghostClass:'opacity-50',dragClass:'cursor-grabbing',onEnd:async(evt)=>{
+const newOrderIds=Array.from(container.children).map(btn=>btn.dataset.categoryId);
+const oldCategories=[...S.categories];
+S.categories=newOrderIds.map(id=>oldCategories.find(c=>c.id===id));
+S.categories.forEach((cat,index)=>{
+cat.order=index}
+);
+for(const cat of S.categories)await saveCategoryToDB(cat)}
+}
+)}
+;
+
+const renderTabs=()=>{
+const container=$('categoryTabs');
+container.innerHTML='';
+S.categories.forEach(cat=>{
+const btn=document.createElement('button'),isActive=cat.id===S.activeCategoryId,remaining=cat.currentPool?cat.currentPool.length:0,total=cat.videos?cat.videos.length:0,needsAuth=!cat.permissionRestored,icon=cat.type==='tags'?'🏷️':(cat.type==='collection'?'📚':'📁');
+btn.className=`category-tab px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap flex items-center space-x-2 ${isActive?'active text-white':'bg-gray-800 text-gray-400 hover:bg-gray-700'} ${needsAuth?'opacity-50 border border-yellow-500/50':''}`;
+btn.innerHTML=`<span>${icon} ${cat.name}</span>${needsAuth?'<span class="text-yellow-400 text-xs">📂</span>':'<span class="text-xs '+(isActive?'bg-white/20':'bg-gray-700')+' px-1.5 py-0.5 rounded">'+remaining+'/'+total+'</span>'}`;
+btn.dataset.categoryId=cat.id;
+btn.onclick=()=>{
+if(needsAuth)attemptCategoryAuth(cat);
+else switchCategory(cat.id)}
+;
+container.appendChild(btn)}
+);
+initSortable()}
+;
+
+// P7: 合集加载（替代原"授权"流程，支持多文件夹合集）
+const attemptCategoryAuth=async category=>{
+if(!category.roots||category.roots.length===0){
+const dirs=await pickRootsForCategory(category);
+if(dirs.length===0){
+showToast('已取消选择文件夹','warning');
+return}
+category.roots=dirs}
+showToast(`正在扫描 "${category.name}" ...`,'info');
+await loadVideosFromHandles(category);
+category.permissionRestored=!0;
+await saveCategoryToDB(category);
+renderTabs();
+updateUI();
+updateConnectionStatus();
+switchCategory(category.id);
+if(category.videos.length>0)showToast(`合集 "${category.name}" 已加载，共 ${category.videos.length} 个视频`,'success');
+else showToast('该文件夹中没有找到视频文件，可点击「更新当前合集」重新扫描','warning')}
+;
+// P9: 切换合集 — 隐藏操作栏
+const switchCategory=id=>{
+S.activeCategoryId=id;
+S.currentVideo=null;
+S.strategyCounter=0;
+S._switching=!0;
+updateVideoActionBar(null);
+const player=$('mainPlayer');
+player.onerror=null;
+player.pause();
+if(player.src){
+player.removeAttribute('src');
+player.load()}
+$('videoContainer').classList.add('hidden');
+$('emptyState').classList.remove('hidden');
+renderTabs();
+updateUI()}
+;
+// P8: playVideo — file:// 播放 + 操作栏联动
+// 播放请求令牌：连续快速点击抽取时，只有最新一次播放请求生效（防竞态导致的播放失败）
+let _playToken=0;
+const playVideo=async(video,options={
+}
+)=>{
+const token=++_playToken;
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(!category){
+showToast('无法找到视频所属分类','error');
+return}
+const player=$('mainPlayer'),container=$('videoContainer'),emptyState=$('emptyState');
+player.onerror=function(){
+if(S._switching){
+S._switching=!1;
+return}
+const err=player.error;
+if(err&&err.code===err.MEDIA_ERR_SRC_NOT_SUPPORTED){
+const exts=['mkv','avi','flv','mov','wmv','ts','m2ts'];
+const ext=video.name.split('.').pop().toLowerCase();
+if(exts.includes(ext)){
+player._errorHandled=!0;
+showToast('该视频格式('+ext.toUpperCase()+')播放器不支持直接播放，可尝试用格式工厂转为MP4','warning',8000)}
+else {
+player._errorHandled=!0;
+showToast('视频无法播放，可能文件损坏或编码不兼容','error')}
+}
+}
+;
+if(player.src)player.removeAttribute('src');
+let url;
+try{
+url=await window.api.toFileUrl(video.path)}
+catch(err){
+if(token===_playToken)showToast('视频文件读取失败','error');
+return}
+if(token!==_playToken)return;
+player.src=url;
+$('videoTitle').textContent=video.name;
+$('videoMeta').textContent=formatFileSize(video.size);
+$('likeCount').textContent=video.likeCount||0;
+$('dislikeCount').textContent=video.dislikeCount||0;
+emptyState.classList.add('hidden');
+container.classList.remove('hidden');
+updateVideoActionBar(video);
+video.watchCount=(video.watchCount||0)+1;
+video.playTimestamps||(video.playTimestamps=[]);
+video.playTimestamps.push(Date.now());
+video.playTimestamps.length>100&&(video.playTimestamps=video.playTimestamps.slice(-100));
+S.achievements.stats.totalPlays++;
+S.achievements.stats.categoryPlays[category.id]||(S.achievements.stats.categoryPlays[category.id]=0);
+S.achievements.stats.categoryPlays[category.id]++;
+const today=new Date().toISOString().slice(0,10);
+if(S.achievements.stats.lastPlayDate!==today){
+const last=S.achievements.stats.lastPlayDate;
+if(last){
+const lastDate=new Date(last),yesterday=new Date;
+yesterday.setDate(yesterday.getDate()-1);
+lastDate.toISOString().slice(0,10)===yesterday.toISOString().slice(0,10)?S.achievements.stats.consecutiveDays++:S.achievements.stats.consecutiveDays=1}
+else S.achievements.stats.consecutiveDays=1;
+S.achievements.stats.lastPlayDate=today}
+const hour=new Date().getHours();
+hour>=0&&hour<=5&&S.achievements.stats.nightPlays++;
+if(!options.specialPlay){
+if(!video.watched){
+video.watched=!0;
+const index=category.currentPool.findIndex(v=>v.id===video.id);
+index!==-1&&category.currentPool.splice(index,1)}
+}
+else S.achievements.stats.specialPlays++;
+addToHistory(video,category.name,category.id,video.id);
+saveCategoryToDB(category).catch(err=>console.warn('保存播放状态失败',err));
+checkAchievements();
+saveAchievementsToDB();
+updateUI();
+if(token!==_playToken)return;
+player.play().catch(e=>{
+if(S._switching){
+S._switching=!1;
+return}
+if(player._errorHandled){
+player._errorHandled=!1;
+return}
+console.log('播放失败:',e);
+showToast('播放失败，可能文件已损坏或格式不支持','error')}
+)}
+;
+const playSpecificVideo=async(categoryId,videoId,from='')=>{
+const category=S.categories.find(c=>c.id===categoryId);
+if(!category){
+showToast('分类不存在','error');
+return}
+if(!category.permissionRestored){
+showToast('请先加载该合集','warning');
+return}
+const video=category.videos.find(v=>v.id===videoId);
+if(!video){
+showToast('视频不存在','error');
+return}
+S.activeCategoryId=categoryId;
+S.currentVideo=video;
+await playVideo(video,{
+specialPlay:!0}
+)}
+;
+
+// 抽取冷却：连续快速点击只生效一次（600ms CD），配合播放令牌防止竞态报错
+let _lastDrawAt=0;
+const drawVideo=()=>{
+const now=Date.now();
+if(now-_lastDrawAt<600)return;
+_lastDrawAt=now;
+
+  const category=S.categories.find(c=>c.id===S.activeCategoryId);
+
+  if(!category||!category.permissionRestored){
+showToast('请先加载该合集','warning');
+return}
+
+  if(category.currentPool.length===0){
+showToast('当前合集已观看完毕，请重置当前合集','info');
+return}
+
+  let pool = category.currentPool;
+
+  let specialPool = [];
+
+  if(S.strategy!=='default'){
+
+    if(S.strategy==='liked') specialPool = pool.filter(v=>v.likeCount>0);
+
+    else if(S.strategy==='short') specialPool = pool.filter(v=>v.size<100*1024*1024);
+
+    else if(S.strategy==='long') specialPool = pool.filter(v=>v.size>1500*1024*1024);
+
+  }
+
+  let video;
+
+  if(S.strategy!=='default' && S.strategyCounter>=2){
+
+    if(specialPool.length>0){
+
+      video = specialPool[Math.floor(Math.random()*specialPool.length)];
+
+      S.strategyCounter=0;
+
+    }
+ else {
+
+      // 特殊池为空，回退标准，周期重置
+      video = pool[Math.floor(Math.random()*pool.length)];
+
+      S.strategyCounter=0;
+
+    }
+
+  }
+ else {
+
+    video = pool[Math.floor(Math.random()*pool.length)];
+
+    S.strategyCounter++;
+
+  }
+
+  S.currentVideo=video;
+
+  S._switching=!1;
+
+  playVideo(video,{
+specialPlay:!1}
+)
+}
+;
+
+const likeCurrentVideo=()=>{
+if(!S.currentVideo)return;
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(!category)return;
+const video=category.videos.find(v=>v.id===S.currentVideo.id);
+if(!video)return;
+if(video.likeCount>=video.watchCount){
+showToast('点赞次数不能超过观看次数','warning');
+return;
+}
+video.likeCount=(video.likeCount||0)+1;
+video.likeTimestamps||(video.likeTimestamps=[]);
+video.likeTimestamps.push(Date.now());
+video.likeTimestamps.length>100&&(video.likeTimestamps=video.likeTimestamps.slice(-100));
+$('likeCount').textContent=video.likeCount;
+S.achievements.stats.totalLikes++;
+checkAchievements();
+saveAchievementsToDB();
+saveCategoryToDB(category).catch(err=>console.warn('保存点赞失败',err))}
+;
+
+const dislikeCurrentVideo=()=>{
+if(!S.currentVideo)return;
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(!category)return;
+const video=category.videos.find(v=>v.id===S.currentVideo.id);
+if(!video)return;
+video.dislikeCount=(video.dislikeCount||0)+1;
+$('dislikeCount').textContent=video.dislikeCount;
+S.achievements.stats.totalDislikes++;
+checkAchievements();
+saveAchievementsToDB();
+saveCategoryToDB(category).catch(err=>console.warn('保存点踩失败',err))}
+;
+
+const onVideoEnded=()=>{
+drawVideo();
+}
+;
+
+const resetCurrentPool=async()=>{
+if(!(await showConfirmDialog('重置当前合集的观看记录？此操作不会清除已累计的观看次数和点赞。')))return;
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(category){
+category.videos.forEach(v=>v.watched=!1);
+category.currentPool=[...category.videos];
+await saveCategoryToDB(category);
+S.achievements.stats.totalResets++;
+checkAchievements();
+saveAchievementsToDB();
+renderTabs();
+updateUI();
+showToast('当前合集已重置','success')}
+}
+;
+
+// P13: 数据初始化（安全清空：先自动备份）
+const resetAllPools=async()=>{
+if(!(await showConfirmDialog('数据初始化：将删除所有合集并重置所有数据（包括成就、历史、点赞等）。\n\n执行前会自动备份当前数据到 data/backups/。')))return;
+await autoBackupBeforeOverwrite();
+S.categories=[];
+S.activeCategoryId=null;
+S.currentVideo=null;
+S.history=[];
+S.achievements={
+stats:{
+totalPlays:0,totalCollections:0,totalResets:0,totalRefreshes:0,consecutiveDays:0,lastPlayDate:null,totalSeeks:0,categoryPlays:{
+}
+,totalLikes:0,totalDislikes:0,specialPlays:0,logoClickCount:0,nightPlays:0}
+,unlocked:{
+}
+}
+;
+await persistAll();
+renderTabs();
+updateUI();
+updateConnectionStatus();
+$('videoContainer').classList.add('hidden');
+$('emptyState').classList.remove('hidden');
+updateVideoActionBar(null);
+showToast('数据初始化完成','success')}
+;
+const deleteCurrentCategory=async()=>{
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(!category){
+showToast('没有选中的合集','warning');
+return}
+if(!(await showConfirmDialog(`确定要删除合集 "${category.name}" 吗？此操作不可恢复。`)))return;
+await deleteCategoryFromDB(category.id);
+const index=S.categories.findIndex(c=>c.id===category.id);
+index!==-1&&S.categories.splice(index,1);
+if(category.id===S.activeCategoryId){
+if(S.categories.length>0)S.activeCategoryId=S.categories[0].id;
+else{
+S.activeCategoryId=null;
+const player=$('mainPlayer');
+player.onerror=null;
+player.pause();
+if(player.src){
+if(player.src.startsWith('blob:')){
+try{
+URL.revokeObjectURL(player.src)}
+catch(e){
+}
+}
+player.removeAttribute('src');
+player.load()}
+;
+$('videoContainer').classList.add('hidden');
+$('emptyState').classList.remove('hidden')}
+}
+renderTabs();
+updateUI();
+updateConnectionStatus();
+showToast(`合集 "${category.name}" 已删除`,'success')}
+;
+
+// 扫描重建后：同步当前播放视频（文件被外部改名/删除时清理播放器）
+const syncCurrentVideoAfterRescan=category=>{
+if(!S.currentVideo||S.activeCategoryId!==category.id)return;
+const nv=category.videos.find(v=>v.id===S.currentVideo.id);
+if(nv){
+S.currentVideo=nv;
+updateVideoActionBar(nv);
+return}
+S.currentVideo=null;
+const player=$('mainPlayer');
+player.pause();
+player.removeAttribute('src');
+player.load();
+$('videoContainer').classList.add('hidden');
+$('emptyState').classList.remove('hidden');
+updateVideoActionBar(null);
+showToast('当前播放的视频已不在列表中','info')}
+;
+
+// 补充当前合集：追加其他文件夹的视频到当前合集（可多选，合并扫描）
+const supplementCurrentCategory=async()=>{
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(!category){
+showToast('没有选中的合集','warning');
+return}
+if(!category.permissionRestored){
+showToast('请先加载该合集','warning');
+return}
+const dirs=await pickRootsForCategory(category);
+if(dirs.length===0){
+showToast('未添加任何文件夹','info');
+return}
+const added=[];
+for(const dir of dirs){
+if(!category.roots.includes(dir)){
+category.roots.push(dir);
+added.push(dir)}}
+if(added.length===0){
+showToast('所选文件夹已在合集中','info');
+return}
+const oldCount=category.videos.length;
+showToast('正在扫描新增文件夹...','info');
+await loadVideosFromHandles(category);
+category.permissionRestored=!0;
+syncCurrentVideoAfterRescan(category);
+await saveCategoryToDB(category);
+renderTabs();
+updateUI();
+const delta=category.videos.length-oldCount;
+showToast(`已补充 ${added.length} 个文件夹，合集现有 ${category.videos.length} 个视频${delta>0?`（新增 ${delta}）`:''}`,'success')}
+;
+
+const refreshCurrentCategory=async()=>{
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(!category){
+showToast('没有选中的合集','warning');
+return}
+if(!category.permissionRestored){
+showToast('请先加载该合集','warning');
+return}
+showToast(`正在更新合集 "${category.name}" 的视频列表...`,'info');
+const oldVideos=category.videos;
+await loadVideosFromHandles(category);
+// 防误清空：原列表有视频而新扫描为 0（文件夹被移动/暂不可访问），确认后才覆盖
+if(category.videos.length===0&&oldVideos.length>0){
+if(!(await showConfirmDialog(`"${category.name}" 扫描到 0 个视频（原列表有 ${oldVideos.length} 个）。\n可能是文件夹被移动或暂不可访问。\n\n仍要清空该合集列表吗？`))){
+category.videos=oldVideos;
+category.currentPool=oldVideos.filter(v=>!v.watched);
+syncCurrentVideoAfterRescan(category);
+await saveCategoryToDB(category);
+showToast('已保留原视频列表','info');
+renderTabs();
+updateUI();
+return}
+}
+syncCurrentVideoAfterRescan(category);
+await saveCategoryToDB(category);
+S.achievements.stats.totalRefreshes++;
+checkAchievements();
+saveAchievementsToDB();
+renderTabs();
+updateUI();
+showToast(`更新完成，共 ${category.videos.length} 个视频`,'success')}
+;
+
+// 构建备份包（供手动备份与覆盖前自动备份共用）
+const buildBackupPackage=()=>{
+const backup=S.categories.map(cat=>({
+id:cat.id,name:cat.name,type:cat.type||'single',roots:cat.roots||[],tags:cat.tags||[],
+// 5.0: 标签合集是派生数据（视频引用自普通合集），备份不重复打包，恢复后自动聚合重建
+videos:cat.type==='tags'?[]:cat.videos.map(v=>({
+id:v.id,name:v.name,path:v.path||'',rootName:v.rootName||'',relPath:v.relPath||'',size:v.size,watched:v.watched,watchCount:v.watchCount||0,likeCount:v.likeCount||0,dislikeCount:v.dislikeCount||0,playTimestamps:v.playTimestamps||[],likeTimestamps:v.likeTimestamps||[],seekTimestamps:v.seekTimestamps||[],tags:v.tags||[]}
+)),order:cat.order||0}
+));
+return {
+categories:backup,achievements:S.achievements,version:12,
+settings:{
+prefixPresets:S.settings.prefixPresets,tags:S.settings.tags||[],lastStrategy:S.strategy}
+,
+meta:{
+appVersion:'4.0',backupTime:new Date().toISOString(),categoryCount:backup.length,
+totalVideos:backup.reduce((s,c)=>s+(c.videos?c.videos.length:0),0),
+rootFolders:[...new Set(backup.map(c=>c.videos&&c.videos[0]?(c.videos[0].rootName||c.name):c.name))]}
+}
+}
+;
+
+// 覆盖性操作前的自动备份（初始化 / 恢复），返回是否成功
+const autoBackupBeforeOverwrite=async()=>{
+try{
+const r=await window.api.autoBackup(buildBackupPackage());
+if(r&&r.ok){
+showToast('已自动备份当前数据','info',4000);
+return true}
+return false}
+catch(err){
+console.warn('自动备份失败',err);
+return false}
+}
+;
+
+// P11: 备份 — 原生保存对话框
+const backupData=async()=>{
+S._lastModalOpen=Date.now();
+try{
+const backupPackage=buildBackupPackage();
+const saved=await window.api.saveBackup(backupPackage,`播放备份_${new Date().toISOString().slice(0,10)}.json`);
+if(saved)showToast(`备份已保存: ${saved}`,'success')}
+catch(err){
+console.error(err);
+showToast('备份出错: '+err.message,'error')}
+}
+;
+// P12: 恢复 — 原生打开对话框
+const restoreData=async()=>{
+const file=await window.api.pickBackupFile();
+if(!file)return;
+try{
+const text=await window.api.readText(file);
+const backupPackage=JSON.parse(text);
+if(!backupPackage.categories||!Array.isArray(backupPackage.categories)){
+showToast('备份文件格式错误','error');
+return}
+const meta=backupPackage.meta||{};
+const summary=meta.categoryCount?`\n合集数: ${meta.categoryCount}\n视频总数: ${meta.totalVideos||'?'}\n备份时间: ${(meta.backupTime||'').slice(0,16)}`:'';
+const confirmed=await showConfirmDialog(`即将恢复备份数据，当前数据将被覆盖！${summary}\n\n确定恢复？`);
+if(!confirmed)return;
+await autoBackupBeforeOverwrite();
+S.categories=backupPackage.categories.map(item=>({
+id:item.id,name:item.name,type:item.type||'single',roots:Array.isArray(item.roots)?item.roots:[],tags:Array.isArray(item.tags)?item.tags:[],videoMetas:item.videos||item.videoMetas||[],videos:[],currentPool:[],order:item.order||0,persistent:!0,permissionRestored:!1}
+));
+if(backupPackage.achievements&&backupPackage.achievements.stats)S.achievements=backupPackage.achievements;
+else S.achievements={
+stats:{
+totalPlays:0,totalCollections:0,totalResets:0,totalRefreshes:0,consecutiveDays:0,lastPlayDate:null,totalSeeks:0,categoryPlays:{
+}
+,totalLikes:0,totalDislikes:0,specialPlays:0,logoClickCount:0,nightPlays:0}
+,unlocked:{
+}
+}
+;
+if(backupPackage.settings){
+if(Array.isArray(backupPackage.settings.prefixPresets)&&backupPackage.settings.prefixPresets.length>0)S.settings.prefixPresets=backupPackage.settings.prefixPresets;
+if(Array.isArray(backupPackage.settings.tags)&&backupPackage.settings.tags.length>0)S.settings.tags=backupPackage.settings.tags;
+if(backupPackage.settings.lastStrategy)S.strategy=backupPackage.settings.lastStrategy}
+S.history=[];
+S.currentVideo=null;
+S.activeCategoryId=S.categories.length>0?S.categories[0].id:null;
+await persistAll();
+const missingRoots=[],emptyScans=[];
+for(const cat of S.categories){
+if(cat.type==='tags'){
+cat.permissionRestored=!0;
+continue}
+if(cat.roots&&cat.roots.length>0){
+await loadVideosFromHandles(cat);
+cat.permissionRestored=!0;
+if(cat.videos.length===0)emptyScans.push(cat.name)}
+else{
+cat.permissionRestored=!1;
+missingRoots.push(cat.name)}}
+syncTagCategories();
+await persistAll();
+$('videoContainer').classList.add('hidden');
+$('emptyState').classList.remove('hidden');
+updateVideoActionBar(null);
+updateConnectionStatus();
+renderTabs();
+updateUI();
+if(!$('backupRestoreModal').classList.contains('hidden'))closeBackupRestoreModal();
+showToast('数据恢复成功！未关联文件夹的合集请点击「关联文件夹」','success',6000);
+if(emptyScans.length>0){
+setTimeout(()=>showToast(`恢复完成，但 ${emptyScans.length} 个合集路径已失效（${emptyScans.join('、')}），请点击「关联文件夹」重新选择路径`,'warning',9000),800)}
+}
+catch(err){
+console.error(err);
+showToast('恢复失败: '+err.message,'error')}
+}
+;
+const resetStatistics=async()=>{
+if(!(await showConfirmDialog('确定要重置播放次数和浏览历史吗？此操作不会影响点赞、点踩和成就。')))return;
+let modified=!1;
+for(const cat of S.categories){
+cat.videos.forEach(v=>{
+if(v.watchCount>0||v.playTimestamps.length>0||v.likeTimestamps.length>0||v.seekTimestamps.length>0){
+v.watchCount=0;
+v.playTimestamps=[];
+v.likeTimestamps=[];
+v.seekTimestamps=[];
+modified=!0}
+}
+);
+if(modified)await saveCategoryToDB(cat)}
+S.history=[];
+S.achievements.stats.totalPlays=0;
+S.achievements.stats.categoryPlays={
+}
+;
+S.achievements.stats.consecutiveDays=0;
+S.achievements.stats.lastPlayDate=null;
+S.achievements.stats.nightPlays=0;
+S.achievements.stats.specialPlays=0;
+S.achievements.stats.totalSeeks=0;
+await saveAchievementsToDB();
+if(!$('statsModal').classList.contains('hidden'))showStatsModal();
+showToast('统计已重置','success')}
+;
+
+const getCutoffTime=range=>{
+const now=Date.now();
+if(range==='week'){
+const d=new Date;
+d.setDate(d.getDate()-d.getDay());
+d.setHours(0,0,0,0);
+return d.getTime()}
+else if(range==='month'){
+const d=new Date;
+d.setDate(1);
+d.setHours(0,0,0,0);
+return d.getTime()}
+else{
+const d=new Date;
+d.setMonth(0,1);
+d.setHours(0,0,0,0);
+return d.getTime()}
+}
+;
+
+const getWatchIndexInRange=(video,cutoff)=>{
+
+  const playCount=video.playTimestamps.filter(ts=>ts>=cutoff).length;
+
+  const likeCount=video.likeTimestamps.filter(ts=>ts>=cutoff).length;
+
+  const seekCount=video.seekTimestamps.filter(ts=>ts>=cutoff).length;
+
+  const sizeMB=video.size/(1024*1024);
+
+  const adjustedSeek=seekCount/(1+Math.sqrt(sizeMB));
+
+  return Math.sqrt(playCount) * (adjustedSeek * 1 + likeCount * 0.9);
+ // 新公式
+}
+;
+
+const getTopVideosByRange=(range,limit=10)=>{
+const cutoff=getCutoffTime(range);
+const videoScores=[];
+S.categories.forEach(cat=>{
+cat.videos.forEach(v=>{
+const score=getWatchIndexInRange(v,cutoff);
+if(score>0)videoScores.push({
+name:v.name,categoryId:cat.id,videoId:v.id,score}
+)}
+)}
+);
+videoScores.sort((a,b)=>b.score-a.score);
+return videoScores.slice(0,limit)}
+;
+
+const showStatsModal=()=>{
+S._lastModalOpen=Date.now();
+const modal=$('statsModal'),tabs=document.querySelectorAll('#statsModal .stat-tab'),listDiv=$('statsTop10List');
+let activeRange='week';
+const updateList=()=>{
+const top10=getTopVideosByRange(activeRange,10);
+if(top10.length===0)listDiv.innerHTML='<p class="text-gray-500 text-sm text-center py-4">当前时间段无观看数据</p>';
+else{
+let html='';
+top10.forEach((v,idx)=>{
+html+=`<div class="stat-item" data-category-id="${v.categoryId}" data-video-id="${v.videoId}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${v.name}">${v.name}</span></div>`}
+);
+listDiv.innerHTML=html}
+}
+;
+tabs.forEach(tab=>{
+tab.onclick=()=>{
+tabs.forEach(t=>t.classList.remove('active'));
+tab.classList.add('active');
+activeRange=tab.getAttribute('data-range');
+updateList()}
+}
+);
+updateList();
+modal.style.display='flex';
+modal.classList.remove('hidden');
+modal.classList.add('flex')}
+;
+
+const closeStatsModal=()=>{
+blurActive();
+const m=$('statsModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const showReportModal=()=>{
+S._lastModalOpen=Date.now();
+const modal=$('reportModal');
+const activeTab=document.querySelector('#statsModal .stat-tab.active');
+const range=activeTab?activeTab.getAttribute('data-range'):'week';
+const cutoff=getCutoffTime(range);
+const periodNames={
+week:'本周',month:'本月',year:'本年'}
+;
+$('reportTitle').innerText=periodNames[range]+'观影报告';
+let totalPlays=0,totalLikes=0;
+const hourCounts=new Array(24).fill(0);
+const categorySums={
+}
+;
+S.categories.forEach(cat=>{
+let catScore=0;
+cat.videos.forEach(v=>{
+const plays=v.playTimestamps.filter(ts=>ts>=cutoff).length;
+const likes=v.likeTimestamps.filter(ts=>ts>=cutoff).length;
+const seeks=v.seekTimestamps.filter(ts=>ts>=cutoff).length;
+totalPlays+=plays;
+totalLikes+=likes;
+plays>0&&v.playTimestamps.forEach(ts=>{
+if(ts>=cutoff){
+const hour=new Date(ts).getHours();
+hourCounts[hour]++}
+}
+);
+const sizeMB=v.size/(1024*1024);
+const adjustedSeek=seeks/(1+Math.sqrt(sizeMB));
+const score=Math.sqrt(plays) * (adjustedSeek * 1 + likes * 0.9);
+ // 报告中的指数
+catScore+=score}
+);
+categorySums[cat.id]={
+name:cat.name,score:catScore}
+}
+);
+$('reportTotalPlays').innerText=totalPlays;
+$('reportTotalLikes').innerText=totalLikes;
+const slotCounts=[];
+for(let i=0;
+i<8;
+i++){
+let sum=0;
+for(let h=i*3;
+h<i*3+3;
+h++)sum+=hourCounts[h];
+slotCounts.push(sum)}
+const maxSlot=slotCounts.indexOf(Math.max(...slotCounts));
+const slotNames=['00:00-03:00','03:00-06:00','06:00-09:00','09:00-12:00','12:00-15:00','15:00-18:00','18:00-21:00','21:00-24:00'];
+$('reportTopSlot').innerText=slotNames[maxSlot];
+$('reportSlotDesc').innerText=`共 ${slotCounts[maxSlot]} 次播放`;
+let topCategory='无';
+let topScore=0;
+Object.values(categorySums).forEach(cat=>{
+if(cat.score>topScore){
+topScore=cat.score;
+topCategory=cat.name}
+}
+);
+$('reportTopCategory').innerText=topCategory;
+const topVideos=getTopVideosByRange(range,5);
+const videoList=$('reportTopVideos');
+if(topVideos.length===0){
+videoList.innerHTML='<p class="text-gray-500 text-sm">暂无数据</p>'}
+else{
+let html='';
+topVideos.forEach((v,idx)=>{
+html+=`<div class="stat-item"><span class="stat-rank">${idx+1}.</span><span class="stat-name">${v.name}</span></div>`}
+);
+videoList.innerHTML=html}
+modal.style.display='flex';
+modal.classList.remove('hidden');
+modal.classList.add('flex')}
+;
+
+const closeReportModal=()=>{
+blurActive();
+const m=$('reportModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const downloadReport=()=>{
+const element=$('reportContent');
+html2canvas(element).then(canvas=>{
+const link=document.createElement('a');
+link.download='观影报告.png';
+link.href=canvas.toDataURL();
+link.click()}
+)}
+;
+
+const showLikedModal=()=>{
+S._lastModalOpen=Date.now();
+const modal=$('likedModal'),listDiv=$('likedList'),likedVideos=[];
+S.categories.forEach(cat=>{
+cat.videos.forEach(v=>{
+v.likeCount>0&&likedVideos.push({
+name:v.name,categoryId:cat.id,videoId:v.id,count:v.likeCount,path:v.path||''}
+)}
+)}
+);
+likedVideos.sort((a,b)=>b.count-a.count);
+if(likedVideos.length===0)listDiv.innerHTML='<p class="text-gray-500 text-sm text-center py-4">暂无点赞视频</p>';
+else{
+let html='';
+likedVideos.forEach((v,idx)=>{
+html+=`<div class="stat-item" data-category-id="${v.categoryId}" data-video-id="${v.videoId}" title="${v.path}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${v.name}">${v.name}</span><span class="stat-value">${v.count}❤️</span></div>`}
+);
+listDiv.innerHTML=html}
+modal.style.display='flex';
+modal.classList.remove('hidden');
+modal.classList.add('flex')}
+;
+
+const closeLikedModal=()=>{
+blurActive();
+const m=$('likedModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const showDislikedModal=()=>{
+S._lastModalOpen=Date.now();
+const modal=$('dislikedModal'),listDiv=$('dislikedList'),dislikedVideos=[];
+S.categories.forEach(cat=>{
+cat.videos.forEach(v=>{
+v.dislikeCount>0&&dislikedVideos.push({
+name:v.name,categoryId:cat.id,videoId:v.id,count:v.dislikeCount,path:v.path||''}
+)}
+)}
+);
+dislikedVideos.sort((a,b)=>b.count-a.count);
+if(dislikedVideos.length===0)listDiv.innerHTML='<p class="text-gray-500 text-sm text-center py-4">暂无点踩视频</p>';
+else{
+let html='';
+dislikedVideos.forEach((v,idx)=>{
+html+=`<div class="stat-item" data-category-id="${v.categoryId}" data-video-id="${v.videoId}" title="${v.path}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${v.name}">${v.name}</span><span class="stat-value">${v.count}👎</span></div>`}
+);
+listDiv.innerHTML=html}
+modal.style.display='flex';
+modal.classList.remove('hidden');
+modal.classList.add('flex')}
+;
+
+const closeDislikedModal=()=>{
+blurActive();
+const m=$('dislikedModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const showHistoryModal=()=>{
+S._lastModalOpen=Date.now();
+const modal=$('historyModal'),listDiv=$('historyModalList');
+if(S.history.length===0)listDiv.innerHTML='<p class="text-gray-500 text-sm text-center py-4">暂无浏览历史</p>';
+else{
+let html='';
+S.history.slice(0,20).forEach((item,idx)=>{
+html+=`<div class="stat-item" data-category-id="${item.categoryId}" data-video-id="${item.videoId}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${item.name}">${item.name}</span><span class="stat-value">${item.time}</span></div>`}
+);
+listDiv.innerHTML=html}
+modal.style.display='flex';
+modal.classList.remove('hidden');
+modal.classList.add('flex')}
+;
+
+const closeHistoryModal=()=>{
+blurActive();
+const m=$('historyModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const showBackupRestoreModal=()=>{
+S._lastModalOpen=Date.now();
+const m=$('backupRestoreModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+
+const closeBackupRestoreModal=()=>{
+blurActive();
+const m=$('backupRestoreModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const showHelpModal=()=>{
+S._lastModalOpen=Date.now();
+const m=$('helpModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+
+const closeHelpModal=()=>{
+blurActive();
+const m=$('helpModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const showChangelogModal=()=>{
+S._lastModalOpen=Date.now();
+const m=$('changelogModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+
+const closeChangelogModal=()=>{
+blurActive();
+const m=$('changelogModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const refreshAllCollections=async()=>{
+const authorizedCats=S.categories.filter(c=>c.permissionRestored);
+if(authorizedCats.length===0)return;
+showToast(`正在刷新 ${authorizedCats.length} 个合集，请稍候...`,'info',3000);
+for(const cat of authorizedCats){
+await loadVideosFromHandles(cat);
+await saveCategoryToDB(cat);
+S.achievements.stats.totalRefreshes++}
+checkAchievements();
+saveAchievementsToDB();
+renderTabs();
+updateUI()}
+;
+
+// P15: 点赞/点踩清单导出 — 真实绝对路径（跨合集去重，过滤非绝对路径）
+const collectRealPaths=matchFn=>{
+const seen=new Set(),paths=[];
+S.categories.forEach(cat=>{
+(cat.videos||[]).forEach(v=>{
+if(matchFn(v)&&v.path&&v.path.includes(':')){
+if(seen.has(v.path))return;
+seen.add(v.path);
+paths.push(v.path)}
+});
+});
+return paths}
+;
+
+const exportLikedList=async()=>{
+const paths=collectRealPaths(v=>v.likeCount>0);
+if(paths.length===0){
+showToast('没有点赞视频可导出','warning');
+return}
+const saved=await window.api.saveText(paths.join('\n'),`liked_videos_${new Date().toISOString().slice(0,10)}.txt`);
+if(saved)showToast(`已导出 ${paths.length} 个视频的真实路径`,'success')}
+;
+
+const exportDislikedList=async()=>{
+const paths=collectRealPaths(v=>v.dislikeCount>0);
+if(paths.length===0){
+showToast('没有点踩视频可导出','warning');
+return}
+const saved=await window.api.saveText(paths.join('\n'),`disliked_videos_${new Date().toISOString().slice(0,10)}.txt`);
+if(saved)showToast(`已导出 ${paths.length} 个视频的真实路径`,'success')}
+;
+const showAchievementsModal=()=>{
+S._lastModalOpen=Date.now();
+const modal=$('achievementsModal'),tabs=document.querySelectorAll('#achievementsModal .achievement-tab'),listDiv=$('achievementsList');
+let activeCategory='basic';
+const renderAchievements=()=>{
+const achievements=ACHIEVEMENTS[activeCategory],unlocked=S.achievements.unlocked,stats=S.achievements.stats;
+let html='';
+achievements.forEach(ach=>{
+if(activeCategory==='hidden'){
+const isUnlocked=unlocked[ach.name]?!0:!1;
+html+=`<div class="achievement-item"><span class="achievement-icon">${ach.icon}</span><div class="achievement-content"><div class="achievement-header"><span class="achievement-name">${ach.name}</span><span class="achievement-level">${isUnlocked?'已解锁':'未解锁'}</span></div><div class="achievement-desc ${isUnlocked?'':'hidden'}">${isUnlocked?ach.desc:'???'}</div></div></div>`}
+else{
+let currentValue=0;
+ach.id==='viewer'&&(currentValue=stats.totalPlays);
+ach.id==='collector'&&(currentValue=stats.totalCollections);
+ach.id==='reset'&&(currentValue=stats.totalResets);
+ach.id==='diligent'&&(currentValue=stats.totalRefreshes);
+ach.id==='persistent'&&(currentValue=stats.consecutiveDays);
+ach.id==='seeker'&&(currentValue=stats.totalSeeks);
+ach.id==='loyal'&&(currentValue=Math.max(...Object.values(stats.categoryPlays),0));
+ach.id==='liker'&&(currentValue=stats.totalLikes);
+ach.id==='precise'&&(currentValue=stats.specialPlays);
+let currentLevel=0,currentThreshold=0,nextThreshold=0;
+for(let i=0;
+i<ach.levels.length;
+i++){
+if(currentValue>=ach.levels[i])currentLevel=i+1;
+else break}
+if(currentLevel===0){
+currentThreshold=0;
+nextThreshold=ach.levels[0]}
+else if(currentLevel===ach.levels.length){
+currentThreshold=ach.levels[ach.levels.length-1];
+nextThreshold=currentThreshold}
+else{
+currentThreshold=ach.levels[currentLevel-1];
+nextThreshold=ach.levels[currentLevel]}
+const progress=nextThreshold>currentThreshold?Math.min(100,(currentValue-currentThreshold)/(nextThreshold-currentThreshold)*100):100;
+const isUnlocked=unlocked[`${ach.name} Lv.${currentLevel}`]?!0:!1;
+const levelDisplay=currentLevel>0?`Lv.${currentLevel}`:'Lv.0';
+html+=`<div class="achievement-item"><span class="achievement-icon">${ach.icon}</span><div class="achievement-content"><div class="achievement-header"><span class="achievement-name">${ach.name}</span><span class="achievement-level">${levelDisplay} ${isUnlocked?'✅':''}</span></div><div class="achievement-progress-bg"><div class="achievement-progress-fill" style="width:${progress}%"></div></div><div class="achievement-desc">${ach.desc} (${currentValue}/${nextThreshold})</div></div></div>`}
+}
+);
+listDiv.innerHTML=html}
+;
+tabs.forEach(tab=>{
+tab.onclick=()=>{
+tabs.forEach(t=>t.classList.remove('active'));
+tab.classList.add('active');
+activeCategory=tab.getAttribute('data-category');
+renderAchievements()}
+}
+);
+renderAchievements();
+modal.style.display='flex';
+modal.classList.remove('hidden');
+modal.classList.add('flex')}
+;
+
+const closeAchievementsModal=()=>{
+blurActive();
+const m=$('achievementsModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const onLogoClick=()=>{
+S.achievements.stats.logoClickCount++;
+checkAchievements();
+saveAchievementsToDB();
+showToast(`点击图标 ${S.achievements.stats.logoClickCount}/5`,'info')}
+;
+
+const updateUI=()=>{
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(!category||!category.permissionRestored){
+$('poolBadge').textContent=category?'待关联':'未选择';
+$('poolBadge').className='px-2 py-1 text-xs font-bold bg-yellow-500/20 text-yellow-300 rounded-md';
+$('drawBtn').disabled=!0;
+$('resetBtn').disabled=!0;
+$('refreshBtn').disabled=!category;
+$('supplementBtn').disabled=!category;
+$('deleteBtn').disabled=!category;
+$('remainingCount').textContent='0';
+$('watchedCount').textContent='0';
+$('totalCount').textContent='0';
+$('progressBar').style.width='0%';
+return}
+const total=category.videos.length,remaining=category.currentPool.length,watched=total-remaining;
+// 标签合集：动态聚合，不提供补充/更新（只重置/删除）
+const isTags=category.type==='tags';
+$('supplementBtn')&&($('supplementBtn').style.display=isTags?'none':'');
+$('refreshBtn')&&($('refreshBtn').style.display=isTags?'none':'');
+$('poolBadge').textContent=category.name;
+$('poolBadge').className='px-2 py-1 text-xs font-bold bg-indigo-500/20 text-indigo-300 rounded-md';
+$('remainingCount').textContent=remaining;
+$('watchedCount').textContent=watched;
+$('totalCount').textContent=total;
+const percentage=total>0?watched/total*100:0;
+$('progressBar').style.width=percentage+'%';
+$('drawBtn').disabled=remaining===0;
+$('resetBtn').disabled=total===0;
+$('refreshBtn').disabled=!1;
+$('supplementBtn').disabled=!1;
+$('deleteBtn').disabled=!1;
+$('drawBtn').innerHTML=remaining===0?'<span class="flex items-center justify-center space-x-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>已完成</span></span>':'<span class="flex items-center justify-center space-x-2"><svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>随机抽取 ('+remaining+')</span></span>'}
+;
+
+// P16: 连接状态 — 显示数据目录就绪
+const updateConnectionStatus=()=>{
+const status=$('connectionStatus');
+if(!status)return;
+status.innerHTML='<span class="w-2 h-2 rounded-full bg-green-400"></span><span class="text-green-400">数据目录就绪</span>';
+status.style.cursor='pointer';
+status.onclick=()=>{
+window.api.getDataDir().then(dir=>showToast('数据目录: '+dir,'info',6000)).catch(()=>{
+})};
+window.api.getDataDir().then(dir=>{
+status.title='数据目录: '+dir}
+).catch(()=>{
+})}
+;
+const addToHistory=(video,categoryName,categoryId,videoId)=>{
+const time=new Date().toLocaleTimeString('zh-CN',{
+hour:'2-digit',minute:'2-digit'}
+);
+S.history.unshift({
+name:video.name,category:categoryName,categoryId:categoryId,videoId:videoId,time:time}
+);
+S.history.length>20&&S.history.pop()}
+;
+
+const formatFileSize=bytes=>{
+if(bytes===0)return'0 Bytes';
+const k=1024,sizes=['Bytes','KB','MB','GB'],i=Math.floor(Math.log(bytes)/Math.log(k));
+return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i]}
+;
+
+const isModalVisible=id=>{
+const m=$(id);
+return !!(m&&!m.classList.contains('hidden')&&m.style.display!=='none')}
+;
+const anyModalVisible=()=>{
+const modals=document.querySelectorAll('[id$="Modal"]');
+for(const m of modals){
+if(!m.classList.contains('hidden')&&m.style.display!=='none')return true}
+return false}
+;
+
+// 全局快捷键：双通道（主进程 before-input-event 通知 + 页面级 keydown 捕获），
+// 时间戳去重，任何输入法/焦点状态下都生效；输入框聚焦时完全放行（不影响打字与删字）
+const isTypingTarget=()=>{
+const t=document.activeElement;
+if(!t)return false;
+if(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable){
+// 隐藏的输入框（弹窗已关闭但焦点残留）不算打字目标，快捷键照常生效
+const modal=t.closest('[id$="Modal"]');
+if(modal&&(modal.classList.contains('hidden')||modal.style.display==='none'))return false;
+return true}
+return false}
+;
+// 关闭弹窗时清除残留焦点（防止焦点停留在隐藏输入框导致快捷键失效）
+const blurActive=()=>{
+const t=document.activeElement;
+if(t&&t.blur)t.blur()}
+;
+
+let _lastShortcutTime=0;
+const _shortcutGuard=()=>{
+const now=Date.now();
+if(now-_lastShortcutTime<500)return false;
+_lastShortcutTime=now;
+return true}
+;
+
+// Ctrl+D: 随机抽取（全局可用；删除确认弹窗打开时忽略，避免删除目标错乱）
+const handleShortcutDraw=()=>{
+if(!_shortcutGuard())return;
+if(isModalVisible('deleteVideoModal'))return;
+drawVideo()}
+;
+
+// Delete: 全局删除当前视频（先打开确认弹窗；弹窗可见时确认删除）
+// 输入框聚焦时保留文字编辑（Delete=删字符），不做任何删除
+const handleShortcutDelete=()=>{
+if(isTypingTarget())return;
+if(!_shortcutGuard())return;
+if(isModalVisible('deleteVideoModal')){
+doDeleteCurrentVideo();
+return}
+confirmDeleteCurrentVideo()}
+;
+
+// 第二通道：页面级 keydown 捕获（主进程通道在输入法组合状态下可能失真，这里兜底）
+window.addEventListener('keydown',e=>{
+const code=e.code||'';
+const key=(e.key||'').toLowerCase();
+if((e.ctrlKey||e.metaKey)&&(code==='KeyD'||key==='d')){
+handleShortcutDraw();
+return}
+if(code==='Delete'||key==='delete'||key==='del'){
+handleShortcutDelete();
+return}
+},true);
+
+
+const handleKeyPress=e=>{
+// Escape: 关闭新功能弹窗（全屏时按 Esc 只退出全屏，不关弹窗）
+if(e.key==='Escape'){
+if(document.fullscreenElement)return;
+['deleteVideoModal','renameModal','prefixModal','prefixPresetsModal','migrateModal'].forEach(id=>{
+if(isModalVisible(id)){
+const m=$(id);
+m.style.display='none';
+m.classList.add('hidden')}
+});
+return}
+// 输入框/下拉框中不拦截按键（避免影响打字与删除字符）
+const t=e.target;
+if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable))return;
+// 其他弹窗打开时忽略播放快捷键
+if(anyModalVisible())return;
+const player=$('mainPlayer');
+if(!player.src)return;
+const cc=$('customControls');
+switch(e.code){
+case'Space':e.preventDefault();
+player.paused?player.play():player.pause();
+cc&&(cc.classList.add('show'),setTimeout(()=>{
+if(!player.paused)cc.classList.remove('show')}
+,2500));
+break;
+case'ArrowRight':player.currentTime+=10;
+cc&&(cc.classList.add('show'),setTimeout(()=>{
+if(!player.paused)cc.classList.remove('show')}
+,2500));
+break;
+case'ArrowLeft':player.currentTime-=10;
+cc&&(cc.classList.add('show'),setTimeout(()=>{
+if(!player.paused)cc.classList.remove('show')}
+,2500));
+break;
+}
+}
+;
+
+const setupGlobalClick=()=>{
+document.addEventListener('click',e=>{
+const target=e.target.closest('[data-category-id][data-video-id]');
+if(target){
+const categoryId=target.getAttribute('data-category-id'),videoId=target.getAttribute('data-video-id');
+categoryId&&videoId&&playSpecificVideo(categoryId,videoId)}
+}
+)}
+;
+
+const setupVideoSeekListener=()=>{
+const player=$('mainPlayer');
+player.addEventListener('seeked',()=>{
+if(S.currentVideo){
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(category){
+const video=category.videos.find(v=>v.id===S.currentVideo.id);
+if(video){
+video.seekTimestamps||(video.seekTimestamps=[]);
+video.seekTimestamps.push(Date.now());
+video.seekTimestamps.length>100&&(video.seekTimestamps=video.seekTimestamps.slice(-100));
+saveCategoryToDB(category).catch(err=>console.warn('保存拖拽记录失败',err))}
+}
+S.achievements.stats.totalSeeks++;
+checkAchievements();
+saveAchievementsToDB()}
+}
+)}
+;
+
+// 策略高亮：当前选中的策略卡片加高亮（4.9）
+const highlightStrategy=()=>{
+document.querySelectorAll('#strategyModal .strategy-option').forEach(el=>{
+const on=el.dataset.strategy===S.strategy;
+el.classList.toggle('active',on);
+if(on){
+el.style.background='linear-gradient(135deg,#667eea 0%,#764ba2 100%)';
+el.style.color='#fff';
+const sub=el.querySelector('.text-xs');
+if(sub)sub.style.color='rgba(255,255,255,.85)'}
+else{
+el.style.background='';
+el.style.color='';
+const sub=el.querySelector('.text-xs');
+if(sub)sub.style.color=''}}
+)}
+;
+
+const showStrategyModal=()=>{
+S._lastModalOpen=Date.now();
+highlightStrategy();
+const m=$('strategyModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+
+const closeStrategyModal=()=>{
+blurActive();
+const m=$('strategyModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+// P14: 策略选择 — 持久化上次策略
+const selectStrategy=(strategy)=>{
+S.strategy=strategy;
+S.strategyCounter=0;
+S.settings.lastStrategy=strategy;
+persistAll().catch(()=>{
+});
+closeStrategyModal();
+showToast(`已切换策略：${strategy==='default'?'默认设置':strategy==='liked'?'点赞加权':strategy==='short'?'短片优先':'长片优先'}`,'success')}
+;
+const setupCustomControls=()=>{
+const p=$('mainPlayer'),sb=$('seekBar'),pp=$('playPauseBtn'),ct=$('currentTime'),dt=$('durationTime'),vb=$('volumeBtn'),vs=$('volumeSlider'),fb=$('fullscreenBtn'),skb=$('skipBackBtn'),skf=$('skipFwdBtn'),cc=$('customControls');
+let seekDragging=!1,hideTimer=null,showTimer=null,isHovering=!1;
+const fmt=t=>{
+const m=Math.floor(t/60),s=Math.floor(t%60);
+return m+':'+(s<10?'0':'')+s}
+;
+const showCc=()=>{
+clearTimeout(hideTimer);
+clearTimeout(showTimer);
+cc.classList.add('show');
+}
+;
+const hideCc=(delay)=>{
+clearTimeout(showTimer);
+clearTimeout(hideTimer);
+hideTimer=setTimeout(()=>{
+if(!seekDragging&&!p.paused&&!isHovering)cc.classList.remove('show')}
+,delay||800);
+}
+;
+const vc=p.parentElement;
+vc.addEventListener('mousemove',(e)=>{
+const rect=vc.getBoundingClientRect();
+const mouseY=e.clientY-rect.top;
+const bottomZone=rect.height*0.8;
+if(mouseY>bottomZone||p.paused){
+showCc();
+hideCc(1500)}
+else hideCc(400);
+}
+);
+vc.addEventListener('mouseleave',()=>{
+isHovering=!1;
+hideCc(300)}
+);
+cc.addEventListener('mouseenter',()=>{
+isHovering=!0;
+showCc()}
+);
+cc.addEventListener('mouseleave',()=>{
+isHovering=!1;
+if(!seekDragging&&!p.paused)hideCc(200)}
+);
+p.addEventListener('loadedmetadata',()=>{
+sb.max=Math.floor(p.duration*1000)||1000;
+dt.textContent=fmt(p.duration)}
+);
+p.addEventListener('timeupdate',()=>{
+if(!seekDragging){
+sb.value=Math.floor(p.currentTime*1000);
+ct.textContent=fmt(p.currentTime)}
+}
+);
+p.addEventListener('play',()=>{
+pp.textContent='\u23F8';
+cc.classList.remove('pinned');
+hideCc(1500)}
+);
+p.addEventListener('pause',()=>{
+pp.textContent='\u25B6';
+cc.classList.add('pinned');
+showCc()}
+);
+p.addEventListener('ended',()=>{
+pp.textContent='\u25B6';
+cc.classList.remove('pinned')}
+);
+pp.onclick=()=>{
+p.paused?p.play():p.pause()}
+;
+sb.addEventListener('input',()=>{
+seekDragging=!0;
+ct.textContent=fmt(sb.value/1000);
+showCc()}
+);
+sb.addEventListener('change',()=>{
+p.currentTime=sb.value/1000;
+seekDragging=!1;
+cc.classList.remove('pinned');
+hideCc(800)}
+);
+vs.addEventListener('input',()=>{
+p.volume=vs.value/100;
+p.muted=!1;
+vb.textContent=p.volume===0?'\uD83D\uDD07':p.volume<.5?'\uD83D\uDD09':'\uD83D\uDD0A'}
+);
+vb.onclick=()=>{
+p.muted=!p.muted;
+vb.textContent=p.muted||p.volume===0?'\uD83D\uDD07':p.volume<.5?'\uD83D\uDD09':'\uD83D\uDD0A';
+vs.value=p.muted?0:Math.round(p.volume*100)}
+;
+skb.onclick=()=>{
+p.currentTime=Math.max(0,p.currentTime-10);
+showCc();
+hideCc(1500)}
+;
+skf.onclick=()=>{
+p.currentTime=Math.min(p.duration,p.currentTime+10);
+showCc();
+hideCc(1500)}
+;
+fb.onclick=()=>{
+document.fullscreenElement?document.exitFullscreen():p.parentElement.requestFullscreen()}
+;
+// 4.3：单击=暂停/播放（延迟 250ms 判定，避免双击误触发）；双击=仅全屏，不改变播放状态
+let _singleClickTimer=null;
+p.addEventListener('click',()=>{
+if(_singleClickTimer){
+clearTimeout(_singleClickTimer);
+_singleClickTimer=null;
+return}
+_singleClickTimer=setTimeout(()=>{
+_singleClickTimer=null;
+p.paused?p.play():p.pause()}
+,250)}
+);
+p.addEventListener('dblclick',()=>{
+if(_singleClickTimer){
+clearTimeout(_singleClickTimer);
+_singleClickTimer=null}
+document.fullscreenElement?document.exitFullscreen():p.parentElement.requestFullscreen()}
+);
+document.addEventListener('fullscreenchange',()=>{
+if(document.fullscreenElement){
+showCc();
+hideCc(2000)}
+}
+);
+}
+;
+;
+
+// 4.2：弹窗只能通过按钮/Esc 主动关闭，点击外部不再关闭（防止误点丢失弹窗内容）
+// （原"点击遮罩关闭"逻辑已移除）
+
+window.addEventListener('beforeunload',()=>{
+const player=$('mainPlayer');
+if(player&&!player.paused)player.pause()}
+);
+
+// ================= EXE 版新增功能 =================
+const updateVideoActionBar=video=>{
+const bar=$('videoActionBar');
+if(!bar)return;
+if(video&&video.path){
+bar.classList.remove('hidden');
+$('videoPathLabel').textContent=video.path;
+$('videoPathLabel').title=video.path}
+else{
+bar.classList.add('hidden')}
+}
+;
+
+const currentVideoInCategory=()=>{
+if(!S.currentVideo)return null;
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(!category)return null;
+return category.videos.find(v=>v.id===S.currentVideo.id)||null}
+;
+
+const splitFileName=name=>{
+const idx=name.lastIndexOf('.');
+return idx>0?{
+base:name.slice(0,idx),ext:name.slice(idx)}
+:{
+base:name,ext:''}
+}
+;
+
+// ---------- 重命名 ----------
+// 4.7: 重命名 + 加前缀合并为一个弹窗（前缀可留空 / 新名称可留空 / 都填=前缀+新名）
+const showRenameModal=()=>{
+S._lastModalOpen=Date.now();
+const video=currentVideoInCategory();
+if(!video){
+showToast('当前没有可操作的视频','warning');
+return}
+const{
+base,ext}=splitFileName(video.name);
+$('renameOldName').textContent=`当前文件名: ${video.name}   (${video.path})`;
+renderPrefixPresetOptions();
+$('prefixInput').value=S.settings.lastPrefix||'';
+const input=$('renameInput');
+input.value=base;
+updateRenamePreview();
+S._lastModalOpen=Date.now();
+const m=$('renameModal');
+m.style.display='flex';
+m.classList.remove('hidden');
+// 多次尝试聚焦输入框（窗口/输入法状态可能导致首次 focus 失败）
+const focusInput=()=>{
+if(!isModalVisible('renameModal'))return;
+if(document.activeElement!==input)input.focus()}
+;
+setTimeout(focusInput,50);
+setTimeout(focusInput,250);
+setTimeout(()=>{
+if(document.activeElement===input)input.select()}
+,300)}
+;
+
+const updateRenamePreview=()=>{
+const preview=$('renamePreview');
+if(!preview)return;
+const video=currentVideoInCategory();
+if(!video)return;
+const{
+ext}=splitFileName(video.name);
+const prefix=$('prefixInput').value.replace(/^\s+/,'');
+const base=$('renameInput').value.trim();
+let newName='';
+if(prefix&&base)newName=prefix+base+ext;
+else if(prefix)newName=prefix+video.name;
+else if(base)newName=base+ext;
+preview.textContent=newName?`新文件名: ${newName}`:'请填写前缀或新名称';
+preview.style.color=newName?'':'#ef4444'}
+;
+['renameInput','prefixInput'].forEach(id=>{
+$(id)&&($(id).addEventListener('input',updateRenamePreview));
+$(id)&&($(id).addEventListener('keydown',e=>{
+if(e.key==='Enter')applyRename()}
+));
+$(id)&&($(id).addEventListener('mousedown',function(){
+if(document.activeElement!==this)this.focus()}
+));
+});
+
+const closeRenameModal=()=>{
+blurActive();
+const m=$('renameModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+// 文件操作前：暂停并释放播放器对文件的占用（等句柄释放，避免"文件占用中"）
+const releasePlayerBeforeFileOp=async()=>{
+const player=$('mainPlayer');
+const state={
+wasPlaying:!player.paused,keepTime:player.currentTime}
+;
+player.pause();
+player.removeAttribute('src');
+player.load();
+await new Promise(r=>setTimeout(r,350));
+return state}
+;
+// 文件操作后：按原状态恢复播放（延续进度与播放/暂停状态）
+const resumePlayerAfterFileOp=async(filePath,state)=>{
+const player=$('mainPlayer');
+player.src=await window.api.toFileUrl(filePath);
+player.currentTime=state.keepTime||0;
+if(state.wasPlaying)player.play().catch(()=>{
+})}
+;
+
+const applyRename=async()=>{
+const video=currentVideoInCategory();
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+if(!video||!category)return;
+const prefix=$('prefixInput').value.replace(/^\s+/,'');
+const base=$('renameInput').value.trim();
+const{
+ext}=splitFileName(video.name);
+let newName='';
+if(prefix&&base)newName=prefix+base+ext;
+else if(prefix)newName=prefix+video.name;
+else if(base)newName=base+ext;
+else{
+showToast('请填写前缀或新名称','warning');
+return}
+if(newName===video.name){
+showToast('文件名未变化','warning');
+closeRenameModal();
+return}
+closeRenameModal();
+if(prefix)S.settings.lastPrefix=prefix;
+// 先释放播放器占用，再执行改名；改完自动恢复播放并延续进度
+const playState=await releasePlayerBeforeFileOp();
+const res=await window.api.renameFile(video.path,newName);
+if(!res.ok){
+await resumePlayerAfterFileOp(video.path,playState);
+showToast(res.error||'操作失败','error',5000);
+return}
+video.name=newName;
+video.path=res.newPath;
+if(video.relPath)video.relPath=video.relPath.replace(/[^/\\]+$/,newName);
+await saveCategoryToDB(category);
+await resumePlayerAfterFileOp(video.path,playState);
+$('videoTitle').textContent=video.name;
+updateVideoActionBar(video);
+showToast(`已重命名为 "${newName}"`,'success')}
+;
+
+const renderPrefixPresetOptions=()=>{
+const sel=$('prefixPresetSelect');
+if(!sel)return;
+const current=sel.value;
+sel.innerHTML='<option value="">（不使用预设，手动输入）</option>';
+S.settings.prefixPresets.forEach((p,i)=>{
+const opt=document.createElement('option');
+opt.value=String(i);
+opt.textContent=p;
+sel.appendChild(opt)}
+);
+if(current!=='')sel.value=current}
+;
+
+const useSelectedPreset=()=>{
+const sel=$('prefixPresetSelect');
+if(sel.value===''){
+showToast('请先选择预设','warning');
+return}
+$('prefixInput').value=S.settings.prefixPresets[Number(sel.value)];
+updateRenamePreview()}
+;
+// ---------- 前缀预设管理 ----------
+const showPrefixPresetsModal=()=>{
+S._lastModalOpen=Date.now();
+renderPrefixPresetList();
+S._lastModalOpen=Date.now();
+const m=$('prefixPresetsModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+
+const renderPrefixPresetList=()=>{
+const list=$('prefixPresetList');
+if(!list)return;
+if(S.settings.prefixPresets.length===0){
+list.innerHTML='<p class="text-gray-500 text-sm text-center py-3">暂无预设，请在下方添加</p>';
+return}
+list.innerHTML='';
+S.settings.prefixPresets.forEach((p,i)=>{
+const row=document.createElement('div');
+row.className='flex items-center gap-2 bg-gray-900/50 rounded-lg px-3 py-2';
+const span=document.createElement('span');
+span.className='flex-1 text-sm text-gray-200 truncate';
+span.textContent=p;
+span.title=p;
+const renameBtn=document.createElement('button');
+renameBtn.className='px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition-colors';
+renameBtn.textContent='改名';
+renameBtn.onclick=async()=>{
+const next=await showPromptDialog('输入新的预设内容：',p);
+if(next&&next.trim()){
+S.settings.prefixPresets[i]=next.trim();
+persistAll();
+renderPrefixPresetList();
+renderPrefixPresetOptions();
+showToast('预设已更新','success')}
+}
+;
+const delBtn=document.createElement('button');
+delBtn.className='px-2 py-1 text-xs bg-red-900/40 hover:bg-red-900/70 rounded text-red-300 transition-colors';
+delBtn.textContent='删除';
+delBtn.onclick=async()=>{
+if(!(await showConfirmDialog(`删除预设 "${p}"？`)))return;
+S.settings.prefixPresets.splice(i,1);
+persistAll();
+renderPrefixPresetList();
+renderPrefixPresetOptions();
+showToast('预设已删除','success')}
+;
+row.appendChild(span);
+row.appendChild(renameBtn);
+row.appendChild(delBtn);
+list.appendChild(row)}
+)
+}
+;
+
+const addPrefixPreset=()=>{
+const input=$('prefixNewPreset');
+const val=input.value.replace(/^\s+/,'');
+if(!val){
+showToast('请输入预设内容','warning');
+return}
+if(S.settings.prefixPresets.includes(val)){
+showToast('该预设已存在','warning');
+return}
+S.settings.prefixPresets.push(val);
+input.value='';
+persistAll();
+renderPrefixPresetList();
+renderPrefixPresetOptions();
+showToast('预设已添加','success')}
+;
+
+const closePrefixPresetsModal=()=>{
+blurActive();
+const m=$('prefixPresetsModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+// ---------- 删除（系统回收站） ----------
+// 弹窗打开时锁定目标视频 id：期间视频自动切换也不会删错对象
+let _deleteTargetId=null;
+const confirmDeleteCurrentVideo=()=>{
+const video=currentVideoInCategory();
+if(!video){
+showToast('当前没有可操作的视频','warning');
+return}
+_deleteTargetId=video.id;
+$('deleteVideoName').textContent=video.name;
+$('deleteVideoPath').textContent=video.path;
+S._lastModalOpen=Date.now();
+const m=$('deleteVideoModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+
+const closeDeleteVideoModal=()=>{
+blurActive();
+_deleteTargetId=null;
+const m=$('deleteVideoModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+const finishDelete=async(video,category,msg)=>{
+const idx=category.videos.findIndex(v=>v.id===video.id);
+if(idx!==-1)category.videos.splice(idx,1);
+category.currentPool=category.videos.filter(v=>!v.watched);
+// 5.0: 删除视频后同步标签合集（动态聚合保持一致）
+syncTagCategories();
+await saveCategoryToDB(category);
+S.currentVideo=null;
+updateVideoActionBar(null);
+renderTabs();
+updateUI();
+showToast(`"${video.name}" ${msg}`,'success');
+if(category.currentPool.length>0){
+setTimeout(()=>drawVideo(),600)}
+}
+;
+
+const doDeleteCurrentVideo=async()=>{
+// 以弹窗打开时锁定的目标为准（弹窗期间视频切换不会删错）
+const category=S.categories.find(c=>c.id===S.activeCategoryId);
+const video=category&&_deleteTargetId?category.videos.find(v=>v.id===_deleteTargetId):null;
+if(!video||!category){
+closeDeleteVideoModal();
+return}
+closeDeleteVideoModal();
+// 先停止播放器并释放文件句柄，再移入回收站（避免占用导致 "Operation was aborted"）
+const player=$('mainPlayer');
+player.pause();
+player.removeAttribute('src');
+player.load();
+$('videoContainer').classList.add('hidden');
+$('emptyState').classList.remove('hidden');
+await new Promise(r=>setTimeout(r,350));
+const res=await window.api.trashFile(video.path);
+if(!res.ok){
+const perm=await showConfirmDialog(`无法将文件移入系统回收站：${res.error||'未知错误'}\n\n是否改为永久删除？此操作不可恢复！`);
+if(perm){
+const r2=await window.api.deletePermanently(video.path);
+if(r2.ok){
+await finishDelete(video,category,'已永久删除');
+return}
+showToast('删除失败: '+r2.error,'error',5000)}
+else showToast('已取消删除，文件未变动','info');
+S.currentVideo=null;
+updateVideoActionBar(null);
+return}
+await finishDelete(video,category,'已移入系统回收站')
+}
+;
+
+// ---------- 打开所在文件夹 ----------
+const revealCurrentVideo=()=>{
+const video=currentVideoInCategory();
+if(!video){
+showToast('当前没有可操作的视频','warning');
+return}
+window.api.revealFile(video.path)}
+;
+
+// ================= 4.8 通用对话框（替代原生 confirm/prompt，避免焦点问题） =================
+let _confirmResolve=null;
+let _promptResolve=null;
+
+const showConfirmDialog=(message,title='确认操作')=>new Promise(resolve=>{
+// E2E 测试钩子：window.__autoConfirm 已设置时直接返回
+if(window.__autoConfirm!==undefined){
+resolve(!!window.__autoConfirm);
+return}
+_confirmResolve=resolve;
+$('confirmDialogTitle').textContent=title;
+$('confirmDialogMessage').textContent=message;
+S._lastModalOpen=Date.now();
+const m=$('confirmDialogModal');
+m.style.display='flex';
+m.classList.remove('hidden')})
+;
+const resolveConfirmDialog=val=>{
+if(_confirmResolve){
+_confirmResolve(val);
+_confirmResolve=null}
+blurActive();
+const m=$('confirmDialogModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+const confirmDialogOK=()=>resolveConfirmDialog(true);
+const confirmDialogCancel=()=>resolveConfirmDialog(false);
+
+const showPromptDialog=(message,defaultValue='',title='输入内容')=>new Promise(resolve=>{
+// E2E 测试钩子：window.__autoPrompt 已设置时直接返回（null=取消）
+if(window.__autoPrompt!==undefined){
+resolve(window.__autoPrompt);
+return}
+_promptResolve=resolve;
+$('promptDialogTitle').textContent=title;
+$('promptDialogMessage').textContent=message;
+const input=$('promptDialogInput');
+input.value=defaultValue;
+S._lastModalOpen=Date.now();
+const m=$('promptDialogModal');
+m.style.display='flex';
+m.classList.remove('hidden');
+setTimeout(()=>{
+if(isModalVisible('promptDialogModal'))input.focus()}
+,50)})
+;
+const resolvePromptDialog=val=>{
+if(_promptResolve){
+_promptResolve(val);
+_promptResolve=null}
+blurActive();
+const m=$('promptDialogModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+const promptDialogOK=()=>resolvePromptDialog($('promptDialogInput').value);
+const promptDialogCancel=()=>resolvePromptDialog(null);
+$('promptDialogInput')&&($('promptDialogInput').addEventListener('keydown',e=>{
+if(e.key==='Enter')promptDialogOK()}
+));
+// ---------- 加标签（仅存存档，不改文件名） ----------
+const showTagsModal=()=>{
+S._lastModalOpen=Date.now();
+const video=currentVideoInCategory();
+if(!video){
+showToast('当前没有可操作的视频','warning');
+return}
+$('tagsOldName').textContent=`当前视频: ${video.name}   (${video.path})`;
+renderTagsList(video);
+S._lastModalOpen=Date.now();
+const m=$('tagsModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+
+const renderTagsList=video=>{
+const list=$('tagsList');
+if(!list)return;
+const tags=S.settings.tags||[];
+if(tags.length===0){
+list.innerHTML='<p class="text-gray-500 text-sm">暂无标签预设，请先添加</p>';
+return}
+list.innerHTML='';
+tags.forEach(tag=>{
+const has=(video.tags||[]).includes(tag);
+const btn=document.createElement('button');
+btn.className=`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${has?'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30':'bg-gray-700/40 text-gray-300 border-gray-600/60 hover:bg-gray-700'}`;
+btn.textContent=has?`${tag} ✓`:`${tag}`;
+btn.onclick=()=>{
+toggleVideoTag(video,tag);
+renderTagsList(video)};
+list.appendChild(btn)}
+)
+}
+;
+
+const toggleVideoTag=(video,tag)=>{
+video.tags||(video.tags=[]);
+const idx=video.tags.indexOf(tag);
+if(idx===-1){
+video.tags.push(tag);
+showToast(`已添加标签 "${tag}"`,'success')}
+else{
+video.tags.splice(idx,1);
+showToast(`已取消标签 "${tag}"`,'info')}
+saveCategoryToDB(S.categories.find(c=>c.id===S.activeCategoryId));
+syncTagCategories();
+renderTabs();
+updateUI()}
+;
+
+const closeTagsModal=()=>{
+blurActive();
+const m=$('tagsModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+// ---------- 标签预设管理 ----------
+const showTagsPresetsModal=()=>{
+S._lastModalOpen=Date.now();
+renderTagsPresetList();
+S._lastModalOpen=Date.now();
+const m=$('tagsPresetsModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+
+const renderTagsPresetList=()=>{
+const list=$('tagsPresetList');
+if(!list)return;
+if((S.settings.tags||[]).length===0){
+list.innerHTML='<p class="text-gray-500 text-sm text-center py-3">暂无标签预设，请在下方添加</p>';
+return}
+list.innerHTML='';
+S.settings.tags.forEach((t,i)=>{
+const row=document.createElement('div');
+row.className='flex items-center gap-2 bg-gray-900/50 rounded-lg px-3 py-2';
+const span=document.createElement('span');
+span.className='flex-1 text-sm text-gray-200 truncate';
+span.textContent=t;
+span.title=t;
+const renameBtn=document.createElement('button');
+renameBtn.className='px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition-colors';
+renameBtn.textContent='改名';
+renameBtn.onclick=async()=>{
+const next=await showPromptDialog('输入新的标签名：',t);
+if(next&&next.trim()){
+S.settings.tags[i]=next.trim();
+persistAll();
+renderTagsPresetList();
+showToast('标签已更新','success')}
+}
+;
+const delBtn=document.createElement('button');
+delBtn.className='px-2 py-1 text-xs bg-red-900/40 hover:bg-red-900/70 rounded text-red-300 transition-colors';
+delBtn.textContent='删除';
+delBtn.onclick=async()=>{
+if(!(await showConfirmDialog(`删除标签 "${t}"？已有该标签的视频将失去此标签。`)))return;
+S.settings.tags.splice(i,1);
+persistAll();
+syncTagCategories();
+renderTagsPresetList();
+showToast('标签已删除','success')}
+;
+row.appendChild(span);
+row.appendChild(renameBtn);
+row.appendChild(delBtn);
+list.appendChild(row)}
+)
+}
+;
+
+const addTagsPreset=()=>{
+const input=$('tagsNewPreset');
+const val=input.value.trim();
+if(!val){
+showToast('请输入标签内容','warning');
+return}
+if((S.settings.tags||[]).includes(val)){
+showToast('该标签已存在','warning');
+return}
+S.settings.tags||(S.settings.tags=[]);
+S.settings.tags.push(val);
+input.value='';
+persistAll();
+renderTagsPresetList();
+showToast('标签已添加','success')}
+;
+
+const closeTagsPresetsModal=()=>{
+blurActive();
+const m=$('tagsPresetsModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+// ---------- 标签合集（动态聚合） ----------
+const showTagCollectionModal=()=>{
+renderTagCollectionTags();
+$('tagCollectionName').value='';
+S._lastModalOpen=Date.now();
+const m=$('tagCollectionModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+
+const renderTagCollectionTags=()=>{
+const wrap=$('tagCollectionTags');
+if(!wrap)return;
+const tags=S.settings.tags||[];
+if(tags.length===0){
+wrap.innerHTML='<p class="text-gray-500 text-sm">暂无标签预设，请先为视频添加标签</p>';
+return}
+wrap.innerHTML='';
+tags.forEach(tag=>{
+const btn=document.createElement('button');
+btn.dataset.tag=tag;
+btn.className='px-4 py-2 rounded-lg text-sm font-medium border transition-all bg-gray-700/40 text-gray-300 border-gray-600/60 hover:bg-gray-700';
+btn.textContent=tag;
+btn.onclick=()=>{
+const on=btn.classList.toggle('tag-picked');
+btn.className=on?'px-4 py-2 rounded-lg text-sm font-medium border transition-all bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30 tag-picked':'px-4 py-2 rounded-lg text-sm font-medium border transition-all bg-gray-700/40 text-gray-300 border-gray-600/60 hover:bg-gray-700';
+if(on){
+const name=$('tagCollectionName');
+if(!name.value.trim())name.value=tag}
+};
+wrap.appendChild(btn)}
+)
+}
+;
+
+const closeTagCollectionModal=()=>{
+blurActive();
+const m=$('tagCollectionModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+
+// 按标签动态聚合标签合集（只从普通合集取视频，避免标签合集互相嵌套）
+const syncTagCategories=()=>{
+let changed=false;
+S.categories.forEach(cat=>{
+if(cat.type!=='tags')return;
+const tags=cat.tags||[];
+const pool=[],seen=new Set();
+S.categories.forEach(other=>{
+if(other===cat||other.type==='tags')return;
+(other.videos||[]).forEach(v=>{
+if(seen.has(v.id))return;
+const vt=v.tags||[];
+if(tags.some(t=>vt.includes(t))){
+seen.add(v.id);
+pool.push(v)}
+});
+});
+cat.videos=pool;
+cat.currentPool=pool.filter(v=>!v.watched);
+changed=true});
+return changed}
+;
+
+const createTagCollection=()=>{
+const picked=Array.from(document.querySelectorAll('#tagCollectionTags .tag-picked')).map(b=>b.dataset.tag);
+if(picked.length===0){
+showToast('请至少勾选一个标签','warning');
+return}
+let name=$('tagCollectionName').value.trim();
+if(!name){
+name=picked.join('+')}
+if(S.categories.some(c=>c.name===name)){
+showToast('该名称已存在，请换一个','warning');
+return}
+const maxOrder=S.categories.reduce((max,cat)=>Math.max(max,cat.order||0),-1);
+const newCategory={
+id:'tag'+Date.now().toString(),name:name,type:'tags',tags:picked,roots:[],videos:[],currentPool:[],order:maxOrder+1,persistent:!0,permissionRestored:!0}
+;
+syncTagCategories();
+// 统计新合集将包含的视频数
+let count=0;
+S.categories.forEach(other=>{
+if(other.type==='tags')return;
+(other.videos||[]).forEach(v=>{
+const vt=v.tags||[];
+if(picked.some(t=>vt.includes(t)))count++});
+});
+S.categories.push(newCategory);
+S.activeCategoryId=newCategory.id;
+syncTagCategories();
+S.achievements.stats.totalCollections++;
+checkAchievements();
+saveAchievementsToDB();
+saveCategoryToDB(newCategory);
+closeTagCollectionModal();
+updateConnectionStatus();
+renderTabs();
+updateUI();
+switchCategory(newCategory.id);
+showToast(`标签合集 "${name}" 已创建，包含 ${count} 个视频`,'success')}
+;
+// ---------- 存档迁移（新版本自动发现旧版本数据） ----------
+let _migrationOptions=[];
+const showMigrateModal=opts=>{
+_migrationOptions=opts;
+const list=$('migrateOptions');
+if(!opts||opts.length===0){
+list.innerHTML='<p class="text-gray-500 text-sm">未发现可导入的存档</p>';
+return}
+let html='';
+opts.forEach((o,i)=>{
+const time=o.backupTime?(' 备份时间 '+o.backupTime.slice(0,16).replace('T',' ')):'';
+html+=`<label class="flex items-center gap-3 bg-gray-900/50 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-900">
+<input type="radio" name="migratePick" value="${i}" ${i===0?'checked':''} class="accent-indigo-500">
+<span class="flex-1 min-w-0">
+<span class="block text-sm text-gray-200 truncate">${o.name}</span>
+<span class="block text-xs text-gray-500">${o.categoryCount} 个合集 · 数据版本 ${o.version}${time}</span>
+</span>
+</label>`});
+list.innerHTML=html;
+S._lastModalOpen=Date.now();
+const m=$('migrateModal');
+m.style.display='flex';
+m.classList.remove('hidden')}
+;
+const closeMigrateModal=()=>{
+blurActive();
+const m=$('migrateModal');
+m.style.display='none';
+m.classList.add('hidden')}
+;
+const doImportMigration=async()=>{
+const picked=document.querySelector('input[name="migratePick"]:checked');
+if(!picked){
+showToast('请先选择一个存档','warning');
+return}
+const opt=_migrationOptions[Number(picked.value)];
+if(!opt)return;
+const res=await window.api.importData(opt.dir);
+if(!res.ok){
+showToast('导入失败: '+res.error,'error',5000);
+return}
+closeMigrateModal();
+showToast('旧存档导入成功，正在加载...','success',4000);
+await initDB();
+await loadCategories();
+updateConnectionStatus();
+renderTabs();
+updateUI();
+showToast(`已导入 "${opt.name}" 的存档，共 ${S.categories.length} 个合集`,'success',6000)}
+;
+
+// ================= 启动流程 =================
+// 检测旧存档并提示迁移（顶层函数，启动时调用；也可由外部再次触发）
+const checkMigration=async()=>{
+try{
+const existed=await window.api.dataExists();
+if(existed)return false;
+const old=await window.api.findOldData();
+if(old&&old.length>0){
+showMigrateModal(old);
+return true}
+showToast('未找到存档，已创建新的空存档（数据保存在 EXE 旁的 data 文件夹）','info',7000);
+return false}
+catch(e){
+return false}
+}
+;
+
+document.addEventListener('DOMContentLoaded',async()=>{
+await initDB();
+await loadCategories();
+updateConnectionStatus();
+renderTabs();
+updateUI();
+updateVideoActionBar(null);
+// 未找到存档时：检测旧版本数据并提示迁移（区分"首次运行"与"数据意外丢失"）
+await checkMigration();
+document.addEventListener('keydown',handleKeyPress);
+window.api.onShortcut('draw',handleShortcutDraw);
+window.api.onShortcut('delete',handleShortcutDelete);
+const player=$('mainPlayer');
+player.addEventListener('ended',onVideoEnded);
+setupGlobalClick();
+setupVideoSeekListener();
+setupCustomControls()}
+);
+
+const dragOverlay=$('dragOverlay');
+document.addEventListener('dragover',e=>{
+e.preventDefault();
+if(e.target.closest('#categoryTabs')) return;
+dragOverlay.classList.add('active')}
+);
+document.addEventListener('dragleave',e=>{
+if(e.target.closest('#categoryTabs'))return;
+if(!e.relatedTarget){
+dragOverlay.classList.remove('active')}
+else if(e.relatedTarget instanceof Element&&!e.relatedTarget.closest){
+dragOverlay.classList.remove('active')}
+}
+);
+document.addEventListener('drop',async e=>{
+e.preventDefault();
+dragOverlay.classList.remove('active');
+if(e.target.closest('#categoryTabs')) return;
+const items=e.dataTransfer.items,paths=[];
+let failedCount=0;
+const promises=[];
+for(let i=0;
+i<items.length;
+i++){
+const item=items[i];
+if(item.kind==='file'){
+promises.push((async()=>{
+const file=item.getAsFile();
+const p=file?window.api.getPathForFile(file):null;
+if(p){
+const isDir=await window.api.isDirectory(p);
+if(isDir)paths.push(p);
+else console.warn('拖拽项不是文件夹:',p)}
+else failedCount++}
+)().catch(err=>{
+console.warn('无法获取文件夹路径:',err);
+failedCount++}
+))}
+}
+await Promise.all(promises);
+if(paths.length>0){
+failedCount>0&&showToast(`成功获取 ${paths.length} 个文件夹，${failedCount} 个失败`,'warning');
+S.tempCollectionPaths=paths;
+updateSelectedDirsList();
+let baseName='拖拽合集',finalName=baseName,counter=1;
+while(S.categories.some(c=>c.name===finalName))finalName=`${baseName} ${counter++}`;
+$('collectionNameInput').value=finalName;
+S._lastModalOpen=Date.now();
+$('collectionModal').style.display='';
+$('collectionModal').classList.remove('hidden');
+$('collectionModal').classList.add('flex')}
+else showToast('未检测到有效的文件夹，请拖拽文件夹','warning')}
+);
+</script>
+</body>
+</html>
