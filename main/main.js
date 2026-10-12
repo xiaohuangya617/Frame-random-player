@@ -294,7 +294,7 @@ if (!gotLock) {
       height: 900,
       minWidth: 1060,
       minHeight: 700,
-      title: '随机播放器 5.8.1',
+      title: '随机播放器 5.8.2',
       icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
       show: !AUTOMATED_TEST_MODE && !splashWindow,
       autoHideMenuBar: true,

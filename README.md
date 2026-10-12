@@ -1,10 +1,10 @@
-# 随机播放器 5.8.1
+# 随机播放器 5.8.2
 
 一个免安装、数据随行的 Windows 本地视频随机播放器。以"不放回抽卡"的形式随机播放你电脑里的视频。
 
 ## 📦 GitHub 下载
 
-- **最新稳定版：5.8.1**：[下载 Windows 绿色版 ZIP](https://github.com/xiaohuangya617/random-player-exe/releases/download/v5.8.1/random-player-5.8.1-win.zip)
+- **最新稳定版：5.8.2**：[下载 Windows 绿色版 ZIP](https://github.com/xiaohuangya617/random-player-exe/releases/download/v5.8.2/random-player-5.8.2-win.zip)
 - 发布页：[GitHub Releases](https://github.com/xiaohuangya617/random-player-exe/releases)
 
 ---
@@ -12,6 +12,7 @@
 ## 更新历史
 
 - **5.8.1**：界面整理，完善指南和字幕状态提示。
+- **5.8.2**：优化字幕样式和窗口模式位置，改进文件夹拖入和合集命名。
 - **5.8**：加入外挂 SRT 字幕、失效合集恢复和视频区域点击分工。
 - **5.7**：加强播放失败处理、存档恢复和大目录扫描稳定性。
 - **5.5–5.6**：加强数据保存、恢复、重命名和删除的一致性。
@@ -102,4 +103,4 @@
 
 - 开发框架：Electron（Chromium 内核）；
 - 数据文件：`data/data.json`（版本 12，原子写入 + 自动 `.bak` 轮换）；
-- 版本：5.8.1（基于 随机播放器 3.1 网页版移植）。
+- 版本：5.8.2（基于 随机播放器 3.1 网页版移植）。

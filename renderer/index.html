@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-随机播放器 5.8.1</title>
+随机播放器 5.8.2</title>
 <link rel="stylesheet" href="styles.css">
 <script src="libs/html2canvas.min.js"></script>
 <script src="libs/Sortable.min.js"></script>
@@ -182,7 +182,7 @@ button:active{transform:scale(.97)}
 </div>
 <div>
 <h1 class="text-xl font-bold text-white tracking-tight">
-随机播放器 5.8.1</h1>
+随机播放器 5.8.2</h1>
 </div>
 </div>
 <div id="headerActions" class="flex items-center space-x-2 min-w-0 overflow-x-auto">
@@ -600,7 +600,7 @@ button:active{transform:scale(.97)}
 <div class="changelog-content">
 <h3>
 <span class="version">
-版本 5.8.1</span>
+版本 5.8.2</span>
   <span class="date">
 2026.10.12</span>
 </h3>
@@ -1182,7 +1182,7 @@ EXE 版首发</span>
 <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
 </svg>
-随机播放器 5.8.1 指南</h3>
+随机播放器 5.8.2 指南</h3>
 <div class="help-content">
 <h2>
 这是什么？</h2>
@@ -1532,7 +1532,7 @@ totalPlays:0,totalCollections:0,totalResets:0,totalRefreshes:0,consecutiveDays:0
 ,unlocked:{
 }
 }
-,strategy:'default',strategyCounter:0,appVersion:'5.8.1'}
+,strategy:'default',strategyCounter:0,appVersion:'5.8.2'}
 ;
 
 const normalizeAchievements=value=>{
@@ -2250,7 +2250,7 @@ setSubtitleStatus('unloaded')
 }
 ;
 const srtTimeToVtt=value=>String(value||'').trim().replace(',', '.');
-const parseSrtToVtt=source=>{
+const parseSrtToVtt=(source,{fullscreen=false}={})=>{
 const text=String(source||'').replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').trim();
 if(!text)throw new Error('字幕文件为空');
 const cues=[];
@@ -2262,9 +2262,10 @@ const match=lines[timeIndex].match(/(\d{1,2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{1
 if(!match)return;
 const body=lines.slice(timeIndex+1).join('\n').trim();
 if(!body)return;
-cues.push(`${srtTimeToVtt(match[1])} --> ${srtTimeToVtt(match[2])}\n${body}`)});
+ const lineSetting=fullscreen?'':' line:-2';
+ cues.push(`${srtTimeToVtt(match[1])} --> ${srtTimeToVtt(match[2])}${lineSetting}\n${body}`)});
 if(cues.length===0)throw new Error('未找到有效字幕时间轴');
-return `WEBVTT\n\n${cues.join('\n\n')}\n`}
+return `WEBVTT\n\nSTYLE\n::cue { background: transparent; background-color: transparent; color: #fff; text-shadow: 0 1px 2px #000, 1px 0 2px #000, -1px 0 2px #000; }\n\n${cues.join('\n\n')}\n`}
 ;
 const loadSubtitleForVideo=async(video,playToken)=>{
 clearSubtitleTrack();
@@ -2280,7 +2281,7 @@ if(!result||!result.ok){
 setSubtitleStatus('unloaded');
 return}
 let vtt;
-try{vtt=parseSrtToVtt(result.text)}
+try{vtt=parseSrtToVtt(result.text,{fullscreen:Boolean(document.fullscreenElement)})}
 catch(err){
 setSubtitleStatus('unloaded');
 showToast(`字幕解析失败：${err.message}`,'warning',5000);
@@ -3774,6 +3775,7 @@ document.addEventListener('fullscreenchange',()=>{
 if(document.fullscreenElement){
 showCc();
 hideCc(2000)}
+if(S.currentVideo)void loadSubtitleForVideo(S.currentVideo,_playToken)
 }
 );
 }
@@ -4706,12 +4708,21 @@ setupCustomControls()}
 );
 
 const dragOverlay=$('dragOverlay');
+const getFolderNameFromPath=value=>String(value||'').split(/[\\/]+/).filter(Boolean).pop()||'';
+const isExternalFileDrag=e=>{
+const types=e&&e.dataTransfer&&e.dataTransfer.types;
+return !!types&&Array.from(types).some(type=>type==='Files'||type==='application/x-moz-file')}
+;
+const isPlayerControlDrag=e=>e&&e.target instanceof Element&&!!e.target.closest('#customControls,#seekBar,#volumeSlider');
 document.addEventListener('dragover',e=>{
+if(!isExternalFileDrag(e))return;
+if(isPlayerControlDrag(e)){e.preventDefault();dragOverlay.classList.remove('active');return}
 e.preventDefault();
 if(e.target.closest('#categoryTabs')) return;
 dragOverlay.classList.add('active')}
 );
 document.addEventListener('dragleave',e=>{
+if(!isExternalFileDrag(e))return;
 if(e.target.closest('#categoryTabs'))return;
 if(!e.relatedTarget){
 dragOverlay.classList.remove('active')}
@@ -4720,10 +4731,13 @@ dragOverlay.classList.remove('active')}
 }
 );
 document.addEventListener('drop',async e=>{
+if(!isExternalFileDrag(e))return;
+if(isPlayerControlDrag(e)){e.preventDefault();dragOverlay.classList.remove('active');return}
 e.preventDefault();
 dragOverlay.classList.remove('active');
 if(e.target.closest('#categoryTabs')) return;
-const items=e.dataTransfer.items,paths=[];
+const items=e.dataTransfer&&e.dataTransfer.items,paths=[];
+if(!items||items.length===0)return;
 let failedCount=0;
 const promises=[];
 for(let i=0;
@@ -4747,7 +4761,8 @@ if(paths.length>0){
 failedCount>0&&showToast(`成功获取 ${paths.length} 个文件夹，${failedCount} 个失败`,'warning');
 S.tempCollectionPaths=paths;
 updateSelectedDirsList();
-let baseName='拖拽合集',finalName=baseName,counter=1;
+  const baseName=getFolderNameFromPath(paths[0])||'拖拽合集';
+ let finalName=baseName,counter=1;
 while(S.categories.some(c=>c.name===finalName))finalName=`${baseName} ${counter++}`;
 $('collectionNameInput').value=finalName;
 S._lastModalOpen=Date.now();

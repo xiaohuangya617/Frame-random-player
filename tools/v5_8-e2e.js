@@ -53,6 +53,26 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     check('字幕关闭只改变显示开关', subtitle.off.status === '已加载' && subtitle.off.highlight === 'false' && subtitle.off.mode === 'hidden', JSON.stringify(subtitle.off));
     check('字幕开关写入存档', subtitle.saved.subtitleEnabled === false && path.resolve(subtitle.saved.subtitleDir) === path.resolve(subtitleDir), JSON.stringify(subtitle.saved));
 
+    const subtitlePresentation = await js(`(()=>{
+      const sample='1\\n00:00:01,000 --> 00:00:03,000\\n测试字幕\\n';
+      const windowVtt=parseSrtToVtt(sample,{fullscreen:false});
+      const fullscreenVtt=parseSrtToVtt(sample,{fullscreen:true});
+      return {hasTransparentCueStyle:windowVtt.includes('background: transparent'),windowRaised:windowVtt.includes('line:-2'),fullscreenKeepsDefault:!fullscreenVtt.includes('line:-2')};
+    })()`);
+    check('字幕透明底和窗口位置', subtitlePresentation.hasTransparentCueStyle && subtitlePresentation.windowRaised && subtitlePresentation.fullscreenKeepsDefault, JSON.stringify(subtitlePresentation));
+
+    const dragGuards = await js(`(()=>{
+      const make=(target,types)=>{const event=new Event('dragover',{bubbles:true,cancelable:true});Object.defineProperty(event,'dataTransfer',{value:{types}});target.dispatchEvent(event);return {prevented:event.defaultPrevented,overlay:$('dragOverlay').classList.contains('active')}};
+      $('dragOverlay').classList.remove('active');
+      const internal=make($('seekBar'),[]);
+      $('dragOverlay').classList.remove('active');
+      const external=make(document.body,['Files']);
+      $('dragOverlay').classList.remove('active');
+      return {internal,external,folderName:getFolderNameFromPath('E:\\\\视频\\\\合集A')};
+    })()`);
+    check('进度条拖动不会触发文件夹拖拽', !dragGuards.internal.prevented && !dragGuards.internal.overlay && dragGuards.external.prevented && dragGuards.external.overlay, JSON.stringify(dragGuards));
+    check('拖拽合集默认使用首个文件夹名称', dragGuards.folderName === '合集A', JSON.stringify(dragGuards));
+
     const gb18030 = await js(`(async()=>window.api.readSubtitle('字幕 GB.mp4'))()`);
     check('GB18030 字幕编码读取', gb18030.ok === true && gb18030.text.includes('中文'), JSON.stringify(gb18030));
 

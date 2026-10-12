@@ -1,7 +1,7 @@
 {
   "name": "random-player-exe",
   "productName": "随机播放器",
-  "version": "5.8.1",
+  "version": "5.8.2",
   "description": "随机播放器 EXE 版 — 便携本地视频随机播放器（数据随行，免授权）",
   "main": "main/main.js",
   "author": "Random Player",

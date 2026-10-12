@@ -171,21 +171,20 @@ module.exports = async ({ app, win, DATA_DIR }) => {
       const unified=normal.every(b=>b.className.includes('border-gray-600/60')&&b.className.includes('text-gray-300'));
       const reset=$('resetAllBtn');
       const danger=reset.className.includes('text-red-300')&&reset.className.includes('bg-red-900/30');
-      $('apiSettingsBtn').click();
-      const apiToast=$('toastContainer').textContent.includes('接口配置暂未实装');
+      const apiToast=!$('apiSettingsBtn');
       showHelpModal();
       const guideTitle=$('helpModal').querySelector('h3').textContent.trim();
       closeHelpModal();
       const actions=$('headerActions');
       return {texts,unified,danger,apiToast,guideTitle,fits:actions.scrollWidth<=actions.clientWidth};
     })()`);
-    const expected=['🔌 接口配置','⚙️ 策略变更','📋 浏览历史','👍 喜爱','📊 排行','💾📂 备份/恢复','❓ 指南','🏆 成就','🔄 初始化'];
+    const expected=['⚙️ 策略变更','📋 浏览历史','👍 喜爱','📊 排行','💾📂 备份/恢复','❓ 指南','🏆 成就','🔄 初始化'];
     if (JSON.stringify(headerTest.texts) === JSON.stringify(expected) && headerTest.fits) pass('顶部按钮顺序且默认窗口完整露出', JSON.stringify(headerTest.texts));
     else fail('顶部按钮顺序且默认窗口完整露出', JSON.stringify(headerTest));
     if (headerTest.unified && headerTest.danger) pass('顶部普通按钮统一且初始化为红色危险样式', JSON.stringify({ unified: headerTest.unified, danger: headerTest.danger }));
     else fail('顶部普通按钮统一且初始化为红色危险样式', JSON.stringify(headerTest));
     const expectedGuideTitle = `随机播放器 ${app.getVersion().replace(/\.0$/, '')} 指南`;
-    if (headerTest.apiToast && headerTest.guideTitle === expectedGuideTitle) pass('接口配置占位提示和指南标题', headerTest.guideTitle);
+    if (headerTest.apiToast && headerTest.guideTitle === expectedGuideTitle) pass('接口配置按钮已移除且指南标题正确', headerTest.guideTitle);
     else fail('接口配置占位提示和指南标题', JSON.stringify(headerTest));
 
     // 侧边栏按钮：补充/更新/重置顺序与命名（4.6/4.7）
