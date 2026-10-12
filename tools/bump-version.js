@@ -1,6 +1,6 @@
 // 版本升级工具（替代 PowerShell 字符串替换，避免 PS5.1 的 GB2312 编码/转义陷阱）
 // 用法: node tools/bump-version.js <新版本>  例如: node tools/bump-version.js 5.3 或 5.3.0
-// 自动同步: package.json / main.js 窗口标题 / renderer/index.html(标题、h1、帮助、README 行) / README.md
+// 自动同步: package.json / package-lock.json / main.js 窗口标题 / renderer 页面标题 / README.md
 const fs = require('fs');
 const path = require('path');
 
@@ -10,33 +10,59 @@ if (!/^\d+\.\d+(\.\d+)?$/.test(newVer)) {
   process.exit(1);
 }
 const fullVer = newVer.split('.').length === 2 ? newVer + '.0' : newVer;
-const display = fullVer.split('.').slice(0, 2).join('.'); // 界面显示用 "5.3"
+const displayFor = version => {
+  const parts = version.split('.');
+  return parts[2] && parts[2] !== '0' ? version : parts.slice(0, 2).join('.');
+};
+const display = displayFor(fullVer); // 5.3.0 显示 5.3，补丁版 5.2.1 保留完整版本号
 
 const root = path.join(__dirname, '..');
 const read = p => fs.readFileSync(path.join(root, p), 'utf8');
 const write = (p, c) => fs.writeFileSync(path.join(root, p), c, 'utf8');
+const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // 1. package.json
 const pkgPath = path.join(root, 'package.json');
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 const oldVer = pkg.version;
-const oldDisplay = oldVer.split('.').slice(0, 2).join('.');
+const oldDisplay = displayFor(oldVer);
 pkg.version = fullVer;
 write('package.json', JSON.stringify(pkg, null, 2) + '\n');
 
+// 1.1 package-lock.json（存在时同步根版本，避免清单与锁文件不一致）
+const lockPath = path.join(root, 'package-lock.json');
+if (fs.existsSync(lockPath)) {
+  const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+  lock.version = fullVer;
+  if (lock.packages && lock.packages['']) lock.packages[''].version = fullVer;
+  write('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
+}
+
 // 2. main.js 窗口标题
 let mainJs = read('main/main.js');
-mainJs = mainJs.replace(new RegExp(`随机播放器 ${oldDisplay.replace('.', '\\.')}（桌面版）`, 'g'), `随机播放器 ${display}（桌面版）`);
+mainJs = mainJs.replace(new RegExp(`随机播放器 ${escapeRegExp(oldDisplay)}(?:（桌面版）)?`, 'g'), `随机播放器 ${display}`);
 write('main/main.js', mainJs);
 
-// 3. renderer/index.html：title / h1 / 帮助标题
+// 3. renderer/index.html：只更新当前页面标题、页眉和指南标题，不改历史更新日志
 let html = read('renderer/index.html');
-html = html.replace(new RegExp(`随机播放器 ${oldDisplay.replace('.', '\\.')}（桌面版）`, 'g'), `随机播放器 ${display}（桌面版）`);
+const oldName = `随机播放器 ${escapeRegExp(oldDisplay)}(?:（桌面版）)?`;
+html = html.replace(new RegExp(`(<title>\\s*)${oldName}(\\s*</title>)`), `$1随机播放器 ${display}$2`);
+html = html.replace(new RegExp(`(<h1[^>]*>\\s*)${oldName}`), `$1随机播放器 ${display}`);
+html = html.replace(new RegExp(`${oldName}(\\s+指南)`), `随机播放器 ${display}$1`);
+html = html.replace(new RegExp(`appVersion:'${escapeRegExp(oldVer)}'`), `appVersion:'${fullVer}'`);
 write('renderer/index.html', html);
+
+// 3.1 renderer/splash.html：启动窗标题
+const splashPath = path.join(root, 'renderer', 'splash.html');
+if (fs.existsSync(splashPath)) {
+  let splash = read('renderer/splash.html');
+  splash = splash.replace(new RegExp(`随机播放器 ${escapeRegExp(oldDisplay)}(?:（桌面版）)?`, 'g'), `随机播放器 ${display}`);
+  write('renderer/splash.html', splash);
+}
 
 // 4. README.md：标题与版本行
 let readme = read('README.md');
-readme = readme.replace(new RegExp(`随机播放器 ${oldDisplay.replace('.', '\\.')}（桌面版）`, 'g'), `随机播放器 ${display}（桌面版）`);
+readme = readme.replace(new RegExp(`随机播放器 ${escapeRegExp(oldDisplay)}(?:（桌面版）)?`, 'g'), `随机播放器 ${display}`);
 readme = readme.replace(`- 版本：${oldDisplay}（基于`, `- 版本：${display}（基于`);
 write('README.md', readme);
 

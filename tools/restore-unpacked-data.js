@@ -15,6 +15,10 @@ function copyDirSync(src, dst) {
 }
 
 const distDir = path.join(__dirname, '..', 'dist');
+if (!fs.existsSync(distDir)) {
+  console.log('[恢复] dist 不存在，无需恢复');
+  process.exit(0);
+}
 const backups = fs.readdirSync(distDir)
   .filter(n => n.startsWith('_unpacked_data_backup_'))
   .map(n => path.join(distDir, n))

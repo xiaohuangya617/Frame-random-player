@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>
-随机播放器 5.2（桌面版）</title>
+随机播放器 5.8.1</title>
 <link rel="stylesheet" href="styles.css">
 <script src="libs/html2canvas.min.js"></script>
 <script src="libs/Sortable.min.js"></script>
 <style>
-@font-face{font-family:'Inter';src:url('fonts/Inter-Regular.woff2') format('woff2');font-weight:400}
-@font-face{font-family:'Inter';src:url('fonts/Inter-SemiBold.woff2') format('woff2');font-weight:600}
-@font-face{font-family:'Inter';src:url('fonts/Inter-Bold.woff2') format('woff2');font-weight:700}
+@font-face{font-family:'Inter';src:url('fonts/Inter-400.woff2') format('woff2');font-weight:400}
+@font-face{font-family:'Inter';src:url('fonts/Inter-600.woff2') format('woff2');font-weight:600}
+@font-face{font-family:'Inter';src:url('fonts/Inter-700.woff2') format('woff2');font-weight:700}
 body{font-family:'Inter','Microsoft YaHei',system-ui,-apple-system,'Segoe UI',sans-serif}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:#1f2937}
@@ -28,7 +28,8 @@ to{opacity:1;transform:translateY(0)}
 @keyframes loadingPulse{0%,100%{opacity:1}
 50%{opacity:.5}
 }
-#toastContainer{position:fixed;bottom:1.5rem;right:1.5rem;z-index:100;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+#toastContainer{position:fixed;bottom:6.5rem;right:1.5rem;z-index:100;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+body.persist-action-busy [data-persist-action]{pointer-events:none!important;opacity:.6!important}
 .toast-item{background:rgba(17,24,39,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.14);color:#fff;padding:.75rem 1.25rem;border-radius:.75rem;box-shadow:0 10px 25px -5px rgba(0,0,0,.5);font-size:.9rem;max-width:24rem;word-break:break-word;transform:translateY(0);transition:all .3s ease;pointer-events:auto;border-left:4px solid}
 .toast-item.info{border-left-color:#3b82f6}
 .toast-item.success{border-left-color:#10b981}
@@ -181,10 +182,10 @@ button:active{transform:scale(.97)}
 </div>
 <div>
 <h1 class="text-xl font-bold text-white tracking-tight">
-随机播放器 5.2（桌面版）</h1>
+随机播放器 5.8.1</h1>
 </div>
 </div>
-<div class="flex items-center space-x-2">
+<div id="headerActions" class="flex items-center space-x-2 min-w-0 overflow-x-auto">
 <div id="connectionStatus" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gray-700/50 text-xs border border-gray-600/50" title="数据目录位置">
 <span class="w-2 h-2 rounded-full bg-yellow-400 loading-pulse">
 </span>
@@ -201,27 +202,27 @@ button:active{transform:scale(.97)}
 </button>
 <button onclick="showLikedModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
 <span>
-👍 点赞清单</span>
+👍 喜爱</span>
 </button>
 <button onclick="showStatsModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
 <span>
-📊 排行统计</span>
-</button>
-<button onclick="showHelpModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
-<span>
-❓ 使用说明</span>
-</button>
-<button onclick="showAchievementsModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
-<span>
-🏆 成就</span>
+📊 排行</span>
 </button>
 <button onclick="showBackupRestoreModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
 <span>
 💾📂 备份/恢复</span>
 </button>
-<button onclick="resetAllPools()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<button onclick="showHelpModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
 <span>
-初始化</span>
+❓ 指南</span>
+</button>
+<button onclick="showAchievementsModal()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/60 rounded-lg transition-colors border border-gray-600/60">
+<span>
+🏆 成就</span>
+</button>
+<button id="resetAllBtn" onclick="resetAllPools()" class="px-3 py-1.5 text-sm text-red-300 hover:text-red-200 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition-colors border border-red-800/50" title="初始化全部数据">
+<span>
+🔄 初始化</span>
 </button>
 </div>
 </header>
@@ -229,7 +230,7 @@ button:active{transform:scale(.97)}
 <div class="flex space-x-2" id="categoryTabs">
 </div>
 </div>
-<main class="flex-1 flex overflow-hidden relative">
+<main class="flex-1 min-h-0 flex overflow-hidden relative">
 <aside class="w-80 bg-gray-800/30 border-r border-gray-700 flex flex-col p-6 space-y-6 overflow-y-auto">
 <div class="glass-panel rounded-2xl p-5 space-y-4">
 <div class="flex items-center justify-between">
@@ -327,8 +328,8 @@ button:active{transform:scale(.97)}
 标签合集：按视频标签自动聚合（动态跟随），只提供重置与删除。</p>
 </div>
 </aside>
-<section class="flex-1 bg-black relative flex flex-col">
-<div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 z-10">
+<section class="flex-1 min-w-0 min-h-0 bg-black relative flex flex-col overflow-hidden">
+<div id="emptyState" class="absolute top-0 left-0 right-0 flex flex-col items-center justify-center text-gray-500 z-10" style="bottom:43px">
 <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-4">
 <svg class="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
@@ -339,8 +340,8 @@ button:active{transform:scale(.97)}
 <p class="text-sm mt-2">
 创建合集或拖拽文件夹开始播放</p>
 </div>
-<div id="videoContainer" class="flex-1 flex items-center justify-center p-2 hidden fade-in">
-<div class="relative w-full max-w-7xl aspect-video bg-gray-900 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+<div id="videoContainer" class="flex-1 min-h-0 flex items-center justify-center p-2 overflow-hidden hidden fade-in">
+<div class="relative w-full h-full max-w-7xl bg-gray-900 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
 <video id="mainPlayer" class="w-full h-full object-contain" playsinline>
 </video>
 <div id="customControls">
@@ -395,18 +396,24 @@ button:active{transform:scale(.97)}
 </div>
 </div>
 </div>
-<div id="videoActionBar" class="hidden bg-gray-900 border-t border-gray-800 px-4 py-2 flex items-center gap-2 flex-wrap">
+<div id="videoActionBar" class="hidden flex-shrink-0 bg-gray-900 border-t border-gray-800 px-4 py-2 flex items-center gap-2 flex-wrap">
 <span id="videoPathLabel" class="text-xs text-gray-500 truncate flex-1 min-w-0" title=""></span>
+<span id="subtitleStatus" class="text-xs text-gray-500 px-1" title="当前视频字幕状态">
+未加载</span>
+<button id="subtitleBtn" onclick="toggleSubtitleVisibility()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/50 rounded-lg transition-colors border border-gray-600/50" title="切换字幕显示">
+🎬 字幕</button>
+<button id="subtitleFolderBtn" onclick="configureSubtitleFolder()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/50 rounded-lg transition-colors border border-gray-600/50" title="选择字幕文件夹（只读取本层 .srt 文件）">
+📁 字幕目录</button>
 <button onclick="showRenameModal()" class="px-3 py-1.5 text-sm text-amber-300 hover:text-amber-200 bg-amber-900/30 hover:bg-amber-900/50 rounded-lg transition-colors border border-amber-800/50" title="重命名当前视频 / 为文件名加前缀">
-✏️ 重命名/前缀</button>
+✏️ 命名</button>
 <button onclick="showTagsModal()" class="px-3 py-1.5 text-sm text-purple-300 hover:text-purple-200 bg-purple-900/30 hover:bg-purple-900/50 rounded-lg transition-colors border border-purple-800/50" title="为当前视频添加标签（仅记录在存档中，不修改文件名）">
-🏷️ 加标签</button>
-<button onclick="confirmDeleteCurrentVideo()" class="px-3 py-1.5 text-sm text-red-300 hover:text-red-200 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition-colors border border-red-800/50" title="删除当前视频（移入系统回收站）">
-🗑️ 删除</button>
+🏷️ 标签</button>
 <button onclick="revealCurrentVideo()" class="px-3 py-1.5 text-sm text-gray-300 hover:text-white bg-gray-700/30 hover:bg-gray-700/50 rounded-lg transition-colors border border-gray-600/50" title="在资源管理器中定位该文件">
-📂 所在文件夹</button>
+📂 路径</button>
+<button id="deleteVideoBtn" onclick="confirmDeleteCurrentVideo()" class="px-3 py-1.5 text-sm text-red-300 hover:text-red-200 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition-colors border border-red-800/50" title="删除当前视频（移入系统回收站）">
+🗑️ 删除</button>
 </div>
-<div class="bg-gray-900 border-t border-gray-800 p-3 text-center text-xs text-gray-500">
+<div class="flex-shrink-0 bg-gray-900 border-t border-gray-800 p-3 text-center text-xs text-gray-500">
 快捷键: 空格(播放/暂停) | ←/→ (快退/快进10s) | Ctrl+D (随机抽取) | Delete (删除/确认删除) | Esc (关闭弹窗)</div>
 </section>
 </main>
@@ -449,7 +456,7 @@ button:active{transform:scale(.97)}
 <div class="bg-gray-800 rounded-2xl p-6 w-[40rem] border border-gray-700 shadow-2xl max-h-[80vh] overflow-y-auto">
 <div class="stats-header">
 <h3 class="text-xl font-bold text-white">
-排行统计</h3>
+排行</h3>
 <button onclick="showReportModal()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm text-white">
 📊 生成报告</button>
 </div>
@@ -532,7 +539,7 @@ button:active{transform:scale(.97)}
 <svg class="w-6 h-6 mr-2 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
 </svg>
-点赞清单</h3>
+喜爱</h3>
 <div id="likedList" class="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1">
 </div>
 <div class="modal-footer flex-shrink-0">
@@ -591,6 +598,132 @@ button:active{transform:scale(.97)}
 </svg>
 更新日志</h3>
 <div class="changelog-content">
+<h3>
+<span class="version">
+版本 5.8.1</span>
+  <span class="date">
+2026.10.12</span>
+</h3>
+<ul>
+<li>
+🧹 移除暂未实装的接口配置按钮，顶部操作区更简洁</li>
+<li>
+🎬 将字幕状态“未加载”移动到字幕按钮左侧，状态更容易识别</li>
+<li>
+📖 完善指南，补充外挂字幕使用方式、状态含义和常见问题</li>
+</ul>
+<h3>
+<span class="version">
+版本 5.8</span>
+  <span class="date">
+2026.10.12</span>
+</h3>
+<ul>
+<li>
+🛡️ 修复失效合集无法选中、删除和重新关联的问题；扫描失败继续保留原视频记录</li>
+<li>
+🎬 实装外挂 SRT 字幕：独立字幕目录、同名匹配、全局开关记忆、已加载/未加载状态</li>
+<li>
+↔️ 视频上半区响应暂停与全屏手势，下半区点击不再误触；底部控制栏保持可用</li>
+<li>
+🧪 新增 5.8 专项测试，覆盖字幕、安全读取、失效合集恢复和上下半区点击</li>
+</ul>
+<h3>
+<span class="version">
+版本 5.7</span>
+  <span class="date">
+2026.09.06</span>
+</h3>
+<ul>
+<li>
+状态变更事务串行执行，连续操作与保存失败不再造成状态分裂</li>
+<li>
+不可播放视频自动跳过，旧存档迁移失败可安全重试</li>
+<li>
+不可播放视频加入会话跳过列表，大型目录扫描增加并发上限</li>
+</ul>
+<h3>
+<span class="version">
+版本 5.6</span>
+  <span class="date">
+2026.09.06</span>
+</h3>
+<ul>
+<li>
+🛡️ 创建、删除、重置、补充和更新合集在存档失败时恢复原状态</li>
+<li>
+💾 排序、策略、标签和预设操作统一校验保存结果，不再误报成功</li>
+<li>
+🧪 新增持久化故障矩阵，覆盖运行态、磁盘存档和提示一致性</li>
+</ul>
+<h3>
+<span class="version">
+版本 5.5</span>
+  <span class="date">
+2026.09.06</span>
+</h3>
+<ul>
+<li>
+🛡️ 重命名后的存档提交失败时，自动恢复原文件名和全部关联数据</li>
+<li>
+💾 恢复与初始化改为事务式提交，保存成功后才切换运行状态</li>
+<li>
+🧪 新增最终提交失败故障注入，覆盖文件、内存、磁盘与提示一致性</li>
+</ul>
+<h3>
+<span class="version">
+版本 5.4</span>
+  <span class="date">
+2026.09.05</span>
+</h3>
+<ul>
+<li>
+✨ 启动小窗淡出、主窗口淡入，窗口切换更加柔和</li>
+<li>
+🔒 启动进度改用通用文案，不再显示合集、目录或文件名称</li>
+<li>
+🧭 顶部入口精简为「接口配置、喜爱、排行」，视频定位入口精简为「路径」</li>
+<li>
+↔️ 接口配置移动到策略变更左侧，其他功能与数据格式保持不变</li>
+</ul>
+<h3>
+<span class="version">
+版本 5.3</span>
+  <span class="date">
+2026.09.05</span>
+</h3>
+<ul>
+<li>
+🚀 新增启动小窗，以真实阶段进度展示存档读取、合集扫描和界面就绪状态</li>
+<li>
+🧭 应用名称精简为「随机播放器 5.3」，「使用说明」改为「指南」并调整顶部按钮顺序</li>
+<li>
+🎬 播放操作栏新增字幕占位入口，命名与标签文案精简，删除按钮移到最右侧</li>
+<li>
+🔌 新增 API 设置占位入口，初始化按钮改为红色危险样式</li>
+<li>
+🪟 主窗口不再记忆上次尺寸，每次按 1600×900 启动</li>
+</ul>
+<h3>
+<span class="version">
+版本 5.2.1</span>
+  <span class="date">
+2026.09.05</span>
+</h3>
+<ul>
+<li>
+🛡️ 修复存档损坏恢复、目录离线时元数据丢失，并加强自动备份与打包保护</li>
+<li>
+🎬 修复播放失败误记观看、连续抽取竞态、自动续播及播放器残留</li>
+<li>
+🏷️ 修复标签合集持久化、删除、改名、预设迁移与动态聚合一致性</li>
+<li>
+⌨️ 修复快捷键去重、弹窗阻断、Esc 关闭、输入法提交及重命名/删除目标竞态</li>
+<li>
+🔒 加固文件访问白名单、拖拽目录授权、页面文本转义和测试钩子隔离</li>
+<li>
+🧪 新增核心、稳定性和布局审计；自动测试使用临时数据、隐藏窗口并强制静音</li>
+</ul>
 <h3>
 <span class="version">
 版本 5.2</span>
@@ -1049,7 +1182,7 @@ EXE 版首发</span>
 <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
 </svg>
-随机播放器 5.2（桌面版）使用说明</h3>
+随机播放器 5.8.1 指南</h3>
 <div class="help-content">
 <h2>
 这是什么？</h2>
@@ -1072,10 +1205,12 @@ EXE 版首发</span>
 按钮介绍：</h2>
 <p>
 随机抽取：从当前合集剩余未看视频中随机抽取播放（播完自动播下一个）<br>
-✏️ 重命名/前缀：修改当前视频文件名，可只改名、只加前缀或两者同时（前缀预设可管理）<br>
-🏷️ 加标签：为视频打标签（MAX/HIGH/LOW 等，仅记录在存档中，不修改文件名），可管理标签预设<br>
+🎬 字幕：切换当前视频的外挂字幕显示；按钮高亮表示字幕开启，左侧“已加载 / 未加载”表示当前视频是否成功匹配字幕<br>
+📁 字幕目录：选择独立字幕文件夹，程序只读取该文件夹本层的 `.srt` 文件，并按视频名称（不含扩展名）同名匹配；没有匹配字幕时显示“未加载”<br>
+✏️ 命名：修改当前视频文件名，可只改名、只加前缀或两者同时（前缀预设可管理）<br>
+🏷️ 标签：为视频打标签（MAX/HIGH/LOW 等，仅记录在存档中，不修改文件名），可管理标签预设<br>
 🗑️ 删除：把当前视频文件移入系统回收站（可到 Windows 回收站还原）<br>
-📂 所在文件夹：在资源管理器中定位当前视频<br>
+📂 路径：在资源管理器中定位当前视频<br>
 更新当前合集：重新扫描文件夹，同步新增/删除的视频<br>
 补充当前合集：把其他文件夹的视频补充进当前合集（可多选，合并为一个合集）<br>
 创建视频合集：选择文件夹创建合集（可多选，自动递归子目录）<br>
@@ -1085,12 +1220,12 @@ EXE 版首发</span>
 数据初始化：删除所有合集并重置所有数据（包括成就、历史、点赞等）<br>
 💾📂 备份/恢复：备份数据为 JSON 文件；恢复后可点击「关联文件夹」为合集重新指定视频目录<br>
 ⚙️ 策略变更：默认 / 点赞加权 / 短片优先 / 长片优先<br>
-排行统计：按观看指数显示本周/本月/本年TOP10影片（点击可播放）<br>
+排行：按观看指数显示本周/本月/本年TOP10影片（点击可播放）<br>
 🏆 成就：查看已解锁成就及进度<br>
-👍 点赞清单 / 👎 点踩清单：显示点赞/点踩过的视频及次数，可导出路径清单<br>
+👍 喜爱 / 👎 点踩清单：显示点赞/点踩过的视频及次数，可导出路径清单<br>
 📋 浏览历史：最近20部影片及观看时间<br>
-重置统计（在排行统计内）：重置播放次数和浏览历史，不影响点赞/点踩/成就<br>
-📊 生成报告（在排行统计内）：根据当前周期生成观影报告并保存为图片</p>
+重置统计（在排行内）：重置播放次数和浏览历史，不影响点赞/点踩/成就<br>
+📊 生成报告（在排行内）：根据当前周期生成观影报告并保存为图片</p>
 <h2>
 常见问题（Q&A）</h2>
 <p>
@@ -1112,10 +1247,10 @@ A：备份/恢复弹窗 →「恢复」→ 选择 JSON 备份文件 → 确认�
 <strong>
 Q4：支持哪些视频格式？</strong>
 <br>
-A：mp4、webm、ogg、mov 可直接播放；mkv、avi、flv、wmv、ts 等格式本播放器不支持，可转码为 MP4 后播放。</p>
+A：可扫描识别 mp4、m4v、webm、ogg、mov、mkv、avi、flv、wmv、ts 等格式。mp4、m4v、webm、ogg、mov 通常可直接播放；其他格式建议转码为 MP4。无法解码或文件损坏时会自动跳过。</p>
 <p>
 <strong>
-Q5：重命名/加前缀会改坏文件吗？</strong>
+Q5：命名（改名/加前缀）会改坏文件吗？</strong>
 <br>
 A：不会。扩展名被强制保留，非法字符、重名、系统保留名都会被拦截；改名失败不影响原文件。</p>
 <p>
@@ -1138,6 +1273,11 @@ A：首次扫描时可能有短暂等待（数千个文件约几秒），扫描�
 Q9：观看指数是什么？</strong>
 <br>
 A：观看指数综合反映您对视频的喜好程度，计算公式为：指数 = √(播放次数) × (调整后拖拽 × 1 + 点赞 × 0.9)，其中调整后拖拽 = 拖拽次数 / (1 + √文件大小MB)。该数值仅用于内部排序，不直接显示。</p>
+<p>
+<strong>
+Q10：为什么字幕显示“未加载”？</strong>
+<br>
+A：请先点击“字幕目录”选择字幕文件夹，再确认 `.srt` 文件与视频名称（不含扩展名）完全相同。程序只查找所选文件夹本层，不会递归子文件夹；字幕开关关闭时仍可能显示“已加载”，因为“已加载”只表示字幕文件已成功读取。</p>
 </div>
 <div class="flex justify-end pt-1 mt-1 border-t border-gray-700">
 <button onclick="closeHelpModal()" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-gray-200 transition-colors">
@@ -1190,7 +1330,7 @@ A：观看指数综合反映您对视频的喜好程度，计算公式为：指�
 <svg class="w-5 h-5 mr-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
 </svg>
-重命名 / 加前缀</h3>
+命名</h3>
 <div id="renameOldName" class="text-xs text-gray-500 mb-3 break-all">
 </div>
 <div class="space-y-3">
@@ -1231,7 +1371,7 @@ A：观看指数综合反映您对视频的喜好程度，计算公式为：指�
 <svg class="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7a1.994 1.994 0 01-.586-1.414V7a4 4 0 014-4z"/>
 </svg>
-加标签</h3>
+标签</h3>
 <div id="tagsOldName" class="text-xs text-gray-500 mb-3 break-all">
 </div>
 <p class="text-sm text-gray-400 mb-2">
@@ -1382,8 +1522,8 @@ A：观看指数综合反映您对视频的喜好程度，计算公式为：指�
 const $=document.getElementById.bind(document);
 
 const S={
-categories:[],activeCategoryId:null,currentVideo:null,history:[],tempCollectionPaths:[],settings:{
-prefixPresets:['[TV] ','[收藏] '],tags:['MAX','HIGH','LOW'],lastStrategy:'default'}
+ categories:[],activeCategoryId:null,currentVideo:null,history:[],tempCollectionPaths:[],unplayableVideoKeys:new Set(),settings:{
+prefixPresets:['[TV] ','[收藏] '],tags:['MAX','HIGH','LOW'],lastStrategy:'default',lastPrefix:'',subtitleDir:'',subtitleEnabled:true}
 ,achievements:{
 stats:{
 totalPlays:0,totalCollections:0,totalResets:0,totalRefreshes:0,consecutiveDays:0,lastPlayDate:null,totalSeeks:0,categoryPlays:{
@@ -1392,7 +1532,57 @@ totalPlays:0,totalCollections:0,totalResets:0,totalRefreshes:0,consecutiveDays:0
 ,unlocked:{
 }
 }
-,strategy:'default',strategyCounter:0}
+,strategy:'default',strategyCounter:0,appVersion:'5.8.1'}
+;
+
+const normalizeAchievements=value=>{
+const base={totalPlays:0,totalCollections:0,totalResets:0,totalRefreshes:0,consecutiveDays:0,lastPlayDate:null,totalSeeks:0,categoryPlays:{},totalLikes:0,totalDislikes:0,specialPlays:0,logoClickCount:0,nightPlays:0};
+const input=value&&typeof value==='object'?value:{};
+const stats=input.stats&&typeof input.stats==='object'?input.stats:{};
+const count=value=>{const number=Number(value);return Number.isFinite(number)&&number>=0?Math.floor(number):0};
+const normalized={};
+Object.keys(base).forEach(key=>{
+if(key==='categoryPlays')normalized[key]=Object.fromEntries(Object.entries(stats.categoryPlays&&typeof stats.categoryPlays==='object'?stats.categoryPlays:{}).map(([id,value])=>[id,count(value)]));
+else if(key==='lastPlayDate')normalized[key]=typeof stats[key]==='string'?stats[key]:null;
+else normalized[key]=count(stats[key])});
+return {stats:normalized,unlocked:input.unlocked&&typeof input.unlocked==='object'?{...input.unlocked}:{}}}
+;
+const localDateKey=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+const normalizeRoots=value=>Array.isArray(value)?value.filter(root=>typeof root==='string'&&root.trim()):[];
+const normalizeCount=value=>{const number=Number(value);return Number.isFinite(number)&&number>=0?Math.floor(number):0};
+const normalizeTimestamps=value=>Array.isArray(value)?value.map(Number).filter(number=>Number.isFinite(number)&&number>=0).slice(-100):[];
+const normalizeVideoMeta=value=>{
+const v=value&&typeof value==='object'?value:{};
+const likeCount=normalizeCount(v.likeCount);
+return {
+id:v.id==null||String(v.id)===''?Math.random().toString(36).slice(2,11):String(v.id),
+name:typeof v.name==='string'&&v.name?v.name:'未命名视频',
+path:typeof v.path==='string'?v.path:'',rootName:typeof v.rootName==='string'?v.rootName:'',relPath:typeof v.relPath==='string'?v.relPath:'',
+size:normalizeCount(v.size),watched:!!v.watched,watchCount:normalizeCount(v.watchCount),likeCount,
+likeCountBaseline:Math.min(likeCount,normalizeCount(v.likeCountBaseline)),dislikeCount:normalizeCount(v.dislikeCount),
+playTimestamps:normalizeTimestamps(v.playTimestamps),likeTimestamps:normalizeTimestamps(v.likeTimestamps),seekTimestamps:normalizeTimestamps(v.seekTimestamps),
+tags:Array.isArray(v.tags)?[...new Set(v.tags.filter(tag=>typeof tag==='string'&&tag))]:[]}}
+;
+const videoKey=v=>(v&&v.path?String(v.path).toLowerCase():`id:${v&&v.id}`);
+const buildCurrentPool=videos=>(videos||[]).filter(v=>!v.watched&&!S.unplayableVideoKeys.has(videoKey(v)));
+const normalCategories=()=>S.categories.filter(c=>c.type!=='tags');
+const uniqueSourceVideos=()=>{
+const seen=new Set(),items=[];
+for(const category of normalCategories())for(const video of (category.videos||[])){
+const key=videoKey(video);
+if(seen.has(key))continue;
+seen.add(key);
+items.push({category,video})}
+return items}
+;
+const escapeHtml=value=>String(value==null?'':value).replace(/[&<>"']/g,ch=>({
+'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const rebuildAllPools=()=>S.categories.forEach(cat=>{
+cat.currentPool=buildCurrentPool(cat.videos)});
+const persistableVideos=cat=>{
+if(cat.type==='tags')return [];
+if(Array.isArray(cat.videos)&&cat.videos.length>0)return cat.videos;
+return Array.isArray(cat.videoMetas)?cat.videoMetas:[]}
 ;
 
 const ACHIEVEMENTS={
@@ -1413,7 +1603,7 @@ id:'loyal',name:'情有独钟',icon:'💘',levels:[10,50,500],desc:'同一合集
 ,{
 id:'liker',name:'点赞狂魔',icon:'👍',levels:[1,10,100],desc:'累计点赞次数'}
 ,{
-id:'precise',name:'精准定位',icon:'🎯',levels:[1,10,50],desc:'从浏览历史/点赞清单/排行统计中点击播放的次数'}
+id:'precise',name:'精准定位',icon:'🎯',levels:[1,10,50],desc:'从浏览历史/喜爱/排行中点击播放的次数'}
 ],hidden:[{
 id:'faithful',name:'忠实用户',icon:'👑',level:null,desc:'成就总等级超过18级'}
 ,{
@@ -1498,7 +1688,7 @@ i++)unlocked[`${ach.name} Lv.${i+1}`]&&totalLevel++}
 !unlocked['忠实用户']&&totalLevel>18&&(unlockAchievement('忠实用户'),newUnlock=!0);
 if(!unlocked['回味无穷']){
 let found=!1;
-S.categories.forEach(cat=>{
+normalCategories().forEach(cat=>{
 cat.videos.forEach(v=>{
 v.likeCount>=10&&(found=!0)}
 )}
@@ -1507,7 +1697,7 @@ found&&(unlockAchievement('回味无穷'),newUnlock=!0)}
 !unlocked['开发模式']&&stats.logoClickCount>=5&&(unlockAchievement('开发模式'),newUnlock=!0);
 if(!unlocked['松鼠党']){
 let found=!1;
-S.categories.forEach(cat=>{
+normalCategories().forEach(cat=>{
 cat.videos.length>=1000&&(found=!0)}
 );
 found&&(unlockAchievement('松鼠党'),newUnlock=!0)}
@@ -1519,41 +1709,121 @@ found&&(unlockAchievement('松鼠党'),newUnlock=!0)}
 // 5.0: 防抖写入（合并高频保存，避免播放/点赞等高频操作反复全量写盘）
 let _saveTimer=null;
 let _pendingPayload=null;
-const buildPersistPayload=()=>{
+let _saveWaiters=[];
+const buildPersistPayload=(state=S)=>{
+const categories=Array.isArray(state.categories)?state.categories:[];
+const settings=state.settings||{};
 const payload={
 version:12,
-categories:S.categories.map(cat=>{
-const metas=cat.videos.map(v=>({
-id:v.id,name:v.name,path:v.path||'',rootName:v.rootName||'',relPath:v.relPath||'',size:v.size,watched:v.watched,watchDuration:0,lastWatchTime:null,watchCount:v.watchCount||0,likeCount:v.likeCount||0,dislikeCount:v.dislikeCount||0,playTimestamps:v.playTimestamps||[],likeTimestamps:v.likeTimestamps||[],seekTimestamps:v.seekTimestamps||[],tags:v.tags||[]}
+categories:categories.map(cat=>{
+const metas=persistableVideos(cat).map(v=>({
+id:v.id,name:v.name,path:v.path||'',rootName:v.rootName||'',relPath:v.relPath||'',size:v.size,watched:v.watched,watchDuration:0,lastWatchTime:null,watchCount:v.watchCount||0,likeCount:v.likeCount||0,likeCountBaseline:v.likeCountBaseline||0,dislikeCount:v.dislikeCount||0,playTimestamps:v.playTimestamps||[],likeTimestamps:v.likeTimestamps||[],seekTimestamps:v.seekTimestamps||[],tags:v.tags||[]}
 ));
 return {
 id:cat.id,name:cat.name,type:cat.type||'single',roots:cat.roots||[],tags:cat.tags||[],videos:metas,order:cat.order||0}
 }
 ),
-achievements:S.achievements,
+achievements:state.achievements,
 settings:{
-prefixPresets:S.settings.prefixPresets||[],tags:S.settings.tags||[],lastStrategy:S.strategy,lastPrefix:S.settings.lastPrefix||''}
+prefixPresets:settings.prefixPresets||[],tags:settings.tags||[],lastStrategy:state.strategy||'default',lastPrefix:settings.lastPrefix||'',subtitleDir:settings.subtitleDir||'',subtitleEnabled:settings.subtitleEnabled!==false}
 }
 ;
 return payload}
+;
+
+const finishPersist=(payload,waiters,showError)=>{
+Promise.resolve().then(()=>window.api.saveData(payload)).then(result=>{
+if(!result||result.ok!==true)throw new Error(result&&result.error?result.error:'保存失败');
+waiters.forEach(done=>done({ok:true}))}
+).catch(err=>{
+console.warn('保存数据失败',err);
+if(showError)showToast('数据保存失败: '+err.message,'error',4000);
+waiters.forEach(done=>done({ok:false,error:err.message}))}
+)}
 ;
 
 const persistAll=()=>{
 _pendingPayload=buildPersistPayload();
 if(_saveTimer)clearTimeout(_saveTimer);
 return new Promise(resolve=>{
+_saveWaiters.push(resolve);
 _saveTimer=setTimeout(()=>{
 _saveTimer=null;
 const payload=_pendingPayload;
 _pendingPayload=null;
-window.api.saveData(payload).then(()=>resolve()).catch(err=>{
-console.warn('保存数据失败',err);
-showToast('数据保存失败: '+err.message,'error',4000);
-resolve()}
-);
+const waiters=_saveWaiters;
+_saveWaiters=[];
+finishPersist(payload,waiters,true);
 },400)}
 );
 }
+;
+
+// 覆盖和物理文件操作使用立即提交，只有落盘成功后才能确认运行态。
+const persistPayloadNow=(payload,{showError=true}={})=>{
+if(_saveTimer)clearTimeout(_saveTimer);
+_saveTimer=null;
+_pendingPayload=null;
+const waiters=_saveWaiters;
+_saveWaiters=[];
+return new Promise(resolve=>{
+waiters.push(resolve);
+finishPersist(payload,waiters,showError)}
+)}
+;
+const persistAllNow=options=>persistPayloadNow(buildPersistPayload(),options);
+
+const clonePersistedValue=value=>JSON.parse(JSON.stringify(value));
+let _persistedActionTail=Promise.resolve();
+let _persistedActionPending=0;
+const persistedActionHandler=/^(createCollection|relinkCategoryRoots|resetCurrentPool|resetAllPools|deleteCurrentCategory|supplementCurrentCategory|refreshCurrentCategory|restoreData|resetStatistics|selectStrategy|applyRename|addPrefixPreset|doDeleteCurrentVideo|addTagsPreset|createTagCollection|doImportMigration|toggleSubtitleVisibility|configureSubtitleFolder)\(/;
+const markPersistedActionControls=()=>document.querySelectorAll('[onclick]').forEach(control=>{
+if(persistedActionHandler.test(control.getAttribute('onclick')||''))control.dataset.persistAction='true'});
+const updatePersistedActionBusy=()=>{
+const busy=_persistedActionPending>0;
+document.body.classList.toggle('persist-action-busy',busy);
+document.body.setAttribute('aria-busy',String(busy))}
+;
+const runPersistedAction=operation=>{
+_persistedActionPending++;
+updatePersistedActionBusy();
+const execute=()=>Promise.resolve().then(operation);
+const result=_persistedActionTail.then(execute,execute);
+_persistedActionTail=result.catch(()=>{});
+return result.finally(()=>{
+_persistedActionPending--;
+updatePersistedActionBusy()})}
+;
+const commitPersistedChange=async({rollback,refresh,failureMessage})=>{
+const saved=await persistAllNow({showError:false});
+if(saved.ok)return true;
+let rollbackError=null;
+try{
+if(rollback)rollback()}
+catch(err){
+rollbackError=err}
+try{
+if(refresh)refresh()}
+catch(err){
+rollbackError=rollbackError||err}
+if(rollbackError){
+showToast(`${failureMessage}，且运行状态恢复失败，请重启程序并检查数据目录: ${rollbackError.message||rollbackError}`,'error',12000)}
+else showToast(`${failureMessage}，原状态已恢复: ${saved.error}`,'error',8000);
+return false}
+;
+const captureCategoryScanState=category=>({
+roots:[...(category.roots||[])],videos:category.videos,videoMetas:category.videoMetas,currentPool:category.currentPool,
+permissionRestored:category.permissionRestored,matchCount:category._matchCount,lastScanOk:category._lastScanOk,scanErrors:category._scanErrors}
+);
+const restoreCategoryScanState=(category,snapshot)=>{
+category.roots=snapshot.roots;
+category.videos=snapshot.videos;
+category.videoMetas=snapshot.videoMetas;
+category.currentPool=snapshot.currentPool;
+category.permissionRestored=snapshot.permissionRestored;
+category._matchCount=snapshot.matchCount;
+category._lastScanOk=snapshot.lastScanOk;
+category._scanErrors=snapshot.scanErrors}
 ;
 
 // 退出前同步落盘（防抖窗口内的最后一次变更不丢失）
@@ -1574,18 +1844,22 @@ const idx=S.categories.findIndex(c=>c.id===id);
 if(idx!==-1)S.categories.splice(idx,1);
 // 5.0: 删除合集后同步标签合集（引用的视频随之移除）
 syncTagCategories();
-return persistAll()}
+return persistAllNow({showError:false})}
 ;
 
 const initDB=async()=>{
-const data=await window.api.loadData();
+const [data,appVersion]=await Promise.all([window.api.loadData(),window.api.getAppVersion().catch(()=>null)]);
+if(appVersion)S.appVersion=appVersion;
 if(data){
-if(data.achievements&&data.achievements.stats)S.achievements=data.achievements;
+S.achievements=normalizeAchievements(data.achievements);
 if(data.settings){
 if(Array.isArray(data.settings.prefixPresets))S.settings.prefixPresets=data.settings.prefixPresets;
 if(Array.isArray(data.settings.tags))S.settings.tags=data.settings.tags;
 if(data.settings.lastStrategy)S.strategy=data.settings.lastStrategy;
-if(data.settings.lastPrefix)S.settings.lastPrefix=data.settings.lastPrefix}
+if(typeof data.settings.lastPrefix==='string')S.settings.lastPrefix=data.settings.lastPrefix;
+if(typeof data.settings.subtitleDir==='string')S.settings.subtitleDir=data.settings.subtitleDir;
+if(typeof data.settings.subtitleEnabled==='boolean')S.settings.subtitleEnabled=data.settings.subtitleEnabled}
+if(data._loadWarning)showToast(data._loadWarning,'error',10000);
 }
 return true}
 ;
@@ -1593,57 +1867,77 @@ return true}
 const loadCategories=async()=>{
 const data=await window.api.loadData();
 const stored=data&&data.categories?data.categories:[];
-S.categories=stored.map(item=>({
-id:item.id,name:item.name,type:item.type||'single',roots:Array.isArray(item.roots)?item.roots:[],tags:Array.isArray(item.tags)?item.tags:[],videoMetas:item.videos||item.videoMetas||[],videos:[],currentPool:[],order:item.order||0,persistent:!0,permissionRestored:!1}
-)).sort((a,b)=>(a.order||0)-(b.order||0));
+S.categories=stored.map(item=>{
+const metas=(item.videos||item.videoMetas||[]).map(normalizeVideoMeta);
+return {id:item.id,name:item.name,type:item.type||'single',roots:normalizeRoots(item.roots),tags:Array.isArray(item.tags)?item.tags:[],videoMetas:metas,videos:item.type==='tags'?[]:metas,currentPool:item.type==='tags'?[]:buildCurrentPool(metas),order:item.order||0,persistent:!0,permissionRestored:item.type==='tags'}}
+).sort((a,b)=>(a.order||0)-(b.order||0));
 S.categories.length>0&&!S.activeCategoryId&&(S.activeCategoryId=S.categories[0].id);
 // EXE 版：直接扫描根目录，无需授权；对比上次记录提示视频增减
 const changes=[];
+const scanTotal=Math.max(S.categories.filter(cat=>cat.type!=='tags').length,1);
+let scanDone=0;
+const reportScan=()=>window.api.reportBootCategory(++scanDone,scanTotal);
+if(S.categories.length===0)reportScan(null);
 for(const cat of S.categories){
 if(cat.type==='tags'){
 cat.permissionRestored=!0;
 continue}
 if(cat.roots&&cat.roots.length>0){
 const oldCount=cat.videoMetas.length;
-await loadVideosFromHandles(cat);
-cat.permissionRestored=!0;
+const scan=await loadVideosFromHandles(cat,{silent:true});
+if(scan.ok){
 const delta=cat.videos.length-oldCount;
 if(delta!==0)changes.push(`${cat.name} ${delta>0?'+':''}${delta}`)}
-else cat.permissionRestored=!1}
+else if(scan.empty)showToast(`"${cat.name}" 扫描为空，已保留原列表；请手动更新后确认`,'warning',8000);
+else showToast(`"${cat.name}" 暂时无法扫描，已保留原列表`,'warning',8000)}
+else cat.permissionRestored=!1;
+reportScan(cat)}
 // 标签合集动态聚合（必须在普通合集扫描完成后）
 syncTagCategories();
+if(S.categories.some(cat=>cat.type!=='tags'&&cat._lastScanOk))await persistAll();
 if(changes.length>0){
 setTimeout(()=>showToast(`扫描完成，视频数量变化：${changes.join('、')}`,'info',7000),1000)}
 return true}
 ;
 // P2: 扫描视频 — 绝对路径扫描 + 元数据匹配
-const loadVideosFromHandles=async(category)=>{
-const videos=[],savedMetas=category.videoMetas||[],exactMap=new Map,fallbackMap=new Map;
+const loadVideosFromHandles=async(category,options={})=>{
+const previous=(category.videos&&category.videos.length>0?category.videos:category.videoMetas)||[];
+const videos=[],savedMetas=previous,exactMap=new Map,fallbackMap=new Map,used=new Set(),seenPaths=new Set(),errors=[];
 savedMetas.forEach(meta=>{
-if(meta.path&&meta.path.includes(':'))exactMap.set(meta.path,meta);
+if(meta.path&&meta.path.includes(':'))exactMap.set(String(meta.path).toLowerCase(),meta);
 const fk=`${meta.name}|${meta.size}`;
-if(!fallbackMap.has(fk))fallbackMap.set(fk,meta)}
+if(!fallbackMap.has(fk))fallbackMap.set(fk,[]);
+fallbackMap.get(fk).push(meta)}
 );
 for(const root of (category.roots||[])){
 let found=[];
 try{
-found=await window.api.scanFolder(root)}
+const result=await window.api.scanFolder(root);
+if(Array.isArray(result))found=result;
+else if(result&&result.ok)found=result.files||[];
+else errors.push(...(result&&result.errors?result.errors:[{path:root,error:'扫描失败'}]))}
 catch(err){
-showToast(`无法扫描目录 ${root}: ${err.message}`,'warning')}
+errors.push({path:root,error:err.message})}
 const rootName=root.split(/[\\/]+/).filter(Boolean).pop()||root;
 found.forEach(f=>{
-let saved=exactMap.get(f.path);
+const fileKey=String(f.path).toLowerCase();
+if(seenPaths.has(fileKey))return;
+seenPaths.add(fileKey);
+let saved=exactMap.get(fileKey);
+if(saved&&used.has(saved))saved=null;
 if(!saved){
 const fk=`${f.name}|${f.size}`;
-saved=fallbackMap.get(fk)}
+saved=(fallbackMap.get(fk)||[]).find(m=>!used.has(m))}
 if(!saved){
-saved=savedMetas.find(m=>m.relPath&&m.relPath===f.relPath&&m.name===f.name)}
+saved=savedMetas.find(m=>!used.has(m)&&m.relPath&&m.relPath===f.relPath&&m.name===f.name)}
+if(saved)used.add(saved);
 videos.push({
 id:saved?saved.id:Math.random().toString(36).substr(2,9),
 name:f.name,path:f.path,relPath:f.relPath,rootName:rootName,
 size:f.size,watched:saved?saved.watched:!1,
 watchCount:saved?saved.watchCount||0:0,
 likeCount:saved?saved.likeCount||0:0,
+likeCountBaseline:saved?saved.likeCountBaseline||0:0,
 dislikeCount:saved?saved.dislikeCount||0:0,
 playTimestamps:saved?saved.playTimestamps||[]:[],
 likeTimestamps:saved?saved.likeTimestamps||[]:[],
@@ -1653,11 +1947,37 @@ tags:saved?saved.tags||[]:[]
 )}
 );
 }
+if(errors.length>0){
+category._lastScanOk=!1;
+category._scanErrors=errors;
+category.videos=previous;
+category.videoMetas=previous;
+category.currentPool=buildCurrentPool(previous);
+category.permissionRestored=!1;
+if(!options.silent)showToast(`无法完整扫描 "${category.name}"，已保留原视频列表`,'warning',8000);
+return {ok:false,errors}}
+if(videos.length===0&&previous.length>0){
+let allowEmpty=!1;
+if(options.confirmEmpty)allowEmpty=await showConfirmDialog(`"${category.name}" 扫描到 0 个视频（原列表有 ${previous.length} 个）。\n可能是文件夹内容已清空。\n\n仍要清空该合集列表吗？`);
+if(!allowEmpty){
+category._lastScanOk=!0;
+category.videos=previous;
+category.videoMetas=previous;
+category.currentPool=buildCurrentPool(previous);
+category.permissionRestored=!1;
+return {ok:false,empty:true,cancelled:!!options.confirmEmpty}}
+}
 category.videos=videos;
+category.videoMetas=videos;
 category._matchCount=videos.length;
-category.currentPool=category.videos.filter(v=>!v.watched);
-// 5.0: 任何重扫后同步标签合集（动态聚合保持一致）
-syncTagCategories()}
+category._lastScanOk=!0;
+category._scanErrors=[];
+category.permissionRestored=!0;
+videos.forEach(video=>S.unplayableVideoKeys.delete(videoKey(video)));
+category.currentPool=buildCurrentPool(category.videos);
+// 5.0: 任何重扫后同步标签合集（恢复事务的临时状态除外）
+if(!options.skipTagSync)syncTagCategories();
+return {ok:true,videos}}
 ;
 // 空补丁（用于删除代码块）
 // P3: 合集创建相关函数 — 句柄改为绝对路径
@@ -1687,7 +2007,7 @@ else{
 let html='';
 paths.forEach((p,idx)=>{
 const name=p.split(/[\\/]+/).filter(Boolean).pop()||p;
-html+=`<div class="flex justify-between items-center py-1 border-b border-gray-700 last:border-0"><span class="truncate">${name}</span><button onclick="removeCollectionDir(${idx})" class="text-red-400 hover:text-red-300 text-xs ml-2">✕</button></div>`});
+html+=`<div class="flex justify-between items-center py-1 border-b border-gray-700 last:border-0"><span class="truncate">${escapeHtml(name)}</span><button onclick="removeCollectionDir(${idx})" class="text-red-400 hover:text-red-300 text-xs ml-2">✕</button></div>`});
 listDiv.innerHTML=html}}
 ;
 
@@ -1711,7 +2031,7 @@ S.tempCollectionPaths=[];
 updateSelectedDirsList()}
 ;
 
-const createCollection=async()=>{
+const createCollection=()=>runPersistedAction(async()=>{
 const name=$('collectionNameInput').value.trim();
 if(!name){
 showToast('请输入合集名称','warning');
@@ -1727,20 +2047,35 @@ const newCategory={
 id:Date.now().toString(),name:name,type:'collection',roots:[...S.tempCollectionPaths],videos:[],currentPool:[],order:maxOrder+1,persistent:!0,permissionRestored:!1}
 ;
 showToast(`开始扫描合集 "${name}" 中的目录...`,'info',2000);
-await loadVideosFromHandles(newCategory);
-newCategory.permissionRestored=!0;
+const scan=await loadVideosFromHandles(newCategory);
+if(!scan.ok){
+showToast('合集目录扫描失败，请检查目录后重试','error',6000);
+return}
+const previousActiveId=S.activeCategoryId;
+const previousAchievements=clonePersistedValue(S.achievements);
 S.categories.push(newCategory);
 S.activeCategoryId=newCategory.id;
 S.achievements.stats.totalCollections++;
+const committed=await commitPersistedChange({
+rollback:()=>{
+S.categories=S.categories.filter(category=>category!==newCategory);
+S.activeCategoryId=previousActiveId;
+S.achievements=previousAchievements;
+syncTagCategories()},
+refresh:()=>{
+renderTabs();
+updateUI();
+updateConnectionStatus()},
+failureMessage:'合集创建失败'});
+if(!committed)return;
+clearPlayer();
 checkAchievements();
-await saveAchievementsToDB();
-await saveCategoryToDB(newCategory);
 closeCollectionModal();
 updateConnectionStatus();
 renderTabs();
 updateUI();
 if(newCategory.videos.length>0)showToast(`合集创建成功，共 ${newCategory.videos.length} 个视频`,'success');
-else showToast('合集中没有找到视频文件，可稍后点击「更新当前合集」重新扫描','warning')}
+else showToast('合集中没有找到视频文件，可稍后点击「更新当前合集」重新扫描','warning')})
 ;
 // P5: 关联文件夹（替代原"存档授权"）
 // 为合集选择根文件夹：可连续选取多个文件夹（取消结束），支持多文件夹合集
@@ -1750,35 +2085,52 @@ const dirs=[];
 while(true){
 const dir=await window.api.pickFolder();
 if(!dir)break;
-if(dirs.includes(dir))break;
+if(dirs.includes(dir))continue;
 dirs.push(dir)}
 return dirs}
 ;
 
-const relinkCategoryRoots=async()=>{
-const targets=S.categories.filter(c=>!(c.roots&&c.roots.length>0)||!c.permissionRestored);
+const relinkCategoryRoots=()=>runPersistedAction(async()=>{
+const targets=normalCategories().filter(c=>!(c.roots&&c.roots.length>0)||!c.permissionRestored);
 if(targets.length===0){
 showToast('所有合集都已关联文件夹','info');
 closeBackupRestoreModal();
 return}
 showToast(`需要为 ${targets.length} 个合集关联文件夹（可取消跳过）`,'info',6000);
 let successCount=0;
+let saveFailureCount=0;
 for(const cat of targets){
 const dirs=await pickRootsForCategory(cat);
 if(dirs.length===0){
 showToast(`已跳过 "${cat.name}"`,'warning');
 continue}
+const snapshot=captureCategoryScanState(cat);
 cat.roots=dirs;
-await loadVideosFromHandles(cat);
-cat.permissionRestored=!0;
-await saveCategoryToDB(cat);
+const scan=await loadVideosFromHandles(cat,{confirmEmpty:true,skipTagSync:true});
+if(!scan.ok){
+restoreCategoryScanState(cat,snapshot);
+syncTagCategories()}
+if(scan.ok){
+const committed=await commitPersistedChange({
+rollback:()=>{
+restoreCategoryScanState(cat,snapshot);
+syncTagCategories()},
+refresh:()=>{
+renderTabs();
+updateUI();
+updateConnectionStatus()},
+failureMessage:`合集 "${cat.name}" 关联保存失败`});
+if(committed){
+syncTagCategories();
 if(cat.videos.length>0)successCount++;
+else showToast(`"${cat.name}" 未找到视频文件，可稍后重新关联`,'warning')}
+else saveFailureCount++}
 else showToast(`"${cat.name}" 未找到视频文件，可稍后重新关联`,'warning')}
 updateConnectionStatus();
 renderTabs();
 updateUI();
 closeBackupRestoreModal();
-showToast(`关联完成，成功 ${successCount}/${targets.length} 个合集`,'success')}
+showToast(saveFailureCount>0?`关联结束：成功 ${successCount}/${targets.length}，${saveFailureCount} 个合集保存失败`:`关联完成，成功 ${successCount}/${targets.length} 个合集`,saveFailureCount>0?'warning':'success')})
 ;
 // 空补丁（用于删除代码块）
 const initSortable=()=>{
@@ -1786,14 +2138,20 @@ if(sortableInstance)sortableInstance.destroy();
 const container=$('categoryTabs');
 if(!container)return;
 sortableInstance=new Sortable(container,{
-animation:150,ghostClass:'opacity-50',dragClass:'cursor-grabbing',onEnd:async(evt)=>{
+animation:150,ghostClass:'opacity-50',dragClass:'cursor-grabbing',onEnd:evt=>runPersistedAction(async()=>{
 const newOrderIds=Array.from(container.children).map(btn=>btn.dataset.categoryId);
 const oldCategories=[...S.categories];
+const oldOrders=oldCategories.map(category=>({category,order:category.order}));
 S.categories=newOrderIds.map(id=>oldCategories.find(c=>c.id===id));
 S.categories.forEach((cat,index)=>{
 cat.order=index}
 );
-for(const cat of S.categories)await saveCategoryToDB(cat)}
+await commitPersistedChange({
+rollback:()=>{
+S.categories=oldCategories;
+oldOrders.forEach(({category,order})=>category.order=order)},
+refresh:()=>renderTabs(),
+failureMessage:'合集排序保存失败'})})
 }
 )}
 ;
@@ -1804,11 +2162,14 @@ container.innerHTML='';
 S.categories.forEach(cat=>{
 const btn=document.createElement('button'),isActive=cat.id===S.activeCategoryId,remaining=cat.currentPool?cat.currentPool.length:0,total=cat.videos?cat.videos.length:0,needsAuth=!cat.permissionRestored,icon=cat.type==='tags'?'🏷️':(cat.type==='collection'?'📚':'📁');
 btn.className=`category-tab px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap flex items-center space-x-2 ${isActive?'active text-white':'bg-gray-800 text-gray-400 hover:bg-gray-700'} ${needsAuth?'opacity-50 border border-yellow-500/50':''}`;
-btn.innerHTML=`<span>${icon} ${cat.name}</span>${needsAuth?'<span class="text-yellow-400 text-xs">📂</span>':'<span class="text-xs '+(isActive?'bg-white/20':'bg-gray-700')+' px-1.5 py-0.5 rounded">'+remaining+'/'+total+'</span>'}`;
+const label=document.createElement('span');
+label.textContent=`${icon} ${cat.name}`;
+const badge=document.createElement('span');
+badge.className=needsAuth?'text-yellow-400 text-xs':`text-xs ${isActive?'bg-white/20':'bg-gray-700'} px-1.5 py-0.5 rounded`;
+badge.textContent=needsAuth?'📂':`${remaining}/${total}`;
+btn.append(label,badge);
 btn.dataset.categoryId=cat.id;
-btn.onclick=()=>{
-if(needsAuth)attemptCategoryAuth(cat);
-else switchCategory(cat.id)}
+btn.onclick=()=>switchCategory(cat.id)
 ;
 container.appendChild(btn)}
 );
@@ -1816,17 +2177,36 @@ initSortable()}
 ;
 
 // P7: 合集加载（替代原"授权"流程，支持多文件夹合集）
-const attemptCategoryAuth=async category=>{
+const attemptCategoryAuthCore=async category=>{
+const snapshot=captureCategoryScanState(category);
+let pickedNewRoots=!1;
 if(!category.roots||category.roots.length===0){
 const dirs=await pickRootsForCategory(category);
 if(dirs.length===0){
 showToast('已取消选择文件夹','warning');
 return}
-category.roots=dirs}
+category.roots=dirs;
+pickedNewRoots=!0}
 showToast(`正在扫描 "${category.name}" ...`,'info');
-await loadVideosFromHandles(category);
-category.permissionRestored=!0;
-await saveCategoryToDB(category);
+const scan=await loadVideosFromHandles(category,{confirmEmpty:true,skipTagSync:true});
+if(!scan.ok){
+if(pickedNewRoots){
+restoreCategoryScanState(category,snapshot);
+syncTagCategories()}
+renderTabs();
+updateUI();
+return}
+const committed=await commitPersistedChange({
+rollback:()=>{
+restoreCategoryScanState(category,snapshot);
+syncTagCategories()},
+refresh:()=>{
+renderTabs();
+updateUI();
+updateConnectionStatus()},
+failureMessage:`合集 "${category.name}" 加载保存失败`});
+if(!committed)return;
+syncTagCategories();
 renderTabs();
 updateUI();
 updateConnectionStatus();
@@ -1834,27 +2214,180 @@ switchCategory(category.id);
 if(category.videos.length>0)showToast(`合集 "${category.name}" 已加载，共 ${category.videos.length} 个视频`,'success');
 else showToast('该文件夹中没有找到视频文件，可点击「更新当前合集」重新扫描','warning')}
 ;
-// P9: 切换合集 — 隐藏操作栏
-const switchCategory=id=>{
-S.activeCategoryId=id;
-S.currentVideo=null;
-S.strategyCounter=0;
-S._switching=!0;
-updateVideoActionBar(null);
+const attemptCategoryAuth=category=>runPersistedAction(()=>attemptCategoryAuthCore(category));
+let _playToken=0;
+let _subtitleRequestToken=0;
+let _subtitleTrackElement=null;
+let _subtitleObjectUrl=null;
+const setSubtitleStatus=status=>{
+const el=$('subtitleStatus');
+if(!el)return;
+const loaded=status==='loaded';
+el.textContent=loaded?'已加载':'未加载';
+el.className=`text-xs px-1 ${loaded?'text-green-400':'text-gray-500'}`;
+el.title=loaded?'当前视频字幕已加载':'当前视频没有可用字幕'}
+;
+const updateSubtitleVisibility=()=>{
+const enabled=S.settings.subtitleEnabled!==false;
+const btn=$('subtitleBtn');
+if(btn){
+btn.classList.toggle('bg-indigo-600/70',enabled);
+btn.classList.toggle('border-indigo-400',enabled);
+btn.classList.toggle('text-white',enabled);
+btn.setAttribute('aria-pressed',String(enabled));
+btn.title=enabled?'字幕已开启，点击关闭':'字幕已关闭，点击开启'}
+if(_subtitleTrackElement&&_subtitleTrackElement.track)_subtitleTrackElement.track.mode=enabled?'showing':'hidden'}
+;
+const clearSubtitleTrack=()=>{
+_subtitleRequestToken++;
+if(_subtitleTrackElement){
+_subtitleTrackElement.remove();
+_subtitleTrackElement=null}
+if(_subtitleObjectUrl){
+URL.revokeObjectURL(_subtitleObjectUrl);
+_subtitleObjectUrl=null}
+setSubtitleStatus('unloaded')
+}
+;
+const srtTimeToVtt=value=>String(value||'').trim().replace(',', '.');
+const parseSrtToVtt=source=>{
+const text=String(source||'').replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').trim();
+if(!text)throw new Error('字幕文件为空');
+const cues=[];
+text.split(/\n{2,}/).forEach(block=>{
+const lines=block.split('\n');
+const timeIndex=lines.findIndex(line=>line.includes('-->'));
+if(timeIndex<0)return;
+const match=lines[timeIndex].match(/(\d{1,2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[,.]\d{3})/);
+if(!match)return;
+const body=lines.slice(timeIndex+1).join('\n').trim();
+if(!body)return;
+cues.push(`${srtTimeToVtt(match[1])} --> ${srtTimeToVtt(match[2])}\n${body}`)});
+if(cues.length===0)throw new Error('未找到有效字幕时间轴');
+return `WEBVTT\n\n${cues.join('\n\n')}\n`}
+;
+const loadSubtitleForVideo=async(video,playToken)=>{
+clearSubtitleTrack();
+if(!video||playToken!==_playToken)return;
+const requestToken=_subtitleRequestToken;
+let result;
+try{result=await window.api.readSubtitle(video.name)}
+catch(err){
+if(requestToken===_subtitleRequestToken&&playToken===_playToken)showToast('字幕读取失败','warning',4000);
+return}
+if(requestToken!==_subtitleRequestToken||playToken!==_playToken)return;
+if(!result||!result.ok){
+setSubtitleStatus('unloaded');
+return}
+let vtt;
+try{vtt=parseSrtToVtt(result.text)}
+catch(err){
+setSubtitleStatus('unloaded');
+showToast(`字幕解析失败：${err.message}`,'warning',5000);
+return}
+if(requestToken!==_subtitleRequestToken||playToken!==_playToken)return;
+_subtitleObjectUrl=URL.createObjectURL(new Blob([vtt],{type:'text/vtt'}));
+const track=document.createElement('track');
+track.kind='subtitles';
+track.label='外挂字幕';
+track.srclang='zh';
+track.src=_subtitleObjectUrl;
+_subtitleTrackElement=track;
+$('mainPlayer').appendChild(track);
+updateSubtitleVisibility();
+setSubtitleStatus('loaded')}
+;
+const toggleSubtitleVisibility=()=>runPersistedAction(async()=>{
+const previous=S.settings.subtitleEnabled!==false;
+S.settings.subtitleEnabled=!previous;
+const saved=await persistAllNow({showError:false});
+if(!saved.ok){
+S.settings.subtitleEnabled=previous;
+showToast(`字幕开关保存失败，原状态已恢复: ${saved.error}`,'error',8000);
+return}
+updateSubtitleVisibility()})
+;
+const configureSubtitleFolder=()=>runPersistedAction(async()=>{
+const previous=S.settings.subtitleDir||'';
+const selected=await window.api.pickSubtitleFolder();
+if(!selected)return;
+S.settings.subtitleDir=selected;
+const saved=await persistAllNow({showError:false});
+if(!saved.ok){
+S.settings.subtitleDir=previous;
+await window.api.setSubtitleFolder(previous).catch(()=>{});
+showToast(`字幕目录保存失败，原目录已恢复: ${saved.error}`,'error',8000);
+return}
+showToast('字幕目录已更新','success');
+if(S.currentVideo)await loadSubtitleForVideo(S.currentVideo,_playToken)})
+;
+const clearPlayer=({clearCurrent=true}={})=>{
+++_playToken;
+clearSubtitleTrack();
+S._switching=!1;
 const player=$('mainPlayer');
 player.onerror=null;
 player.pause();
-if(player.src){
 player.removeAttribute('src');
-player.load()}
+player.load();
+if(clearCurrent)S.currentVideo=null;
 $('videoContainer').classList.add('hidden');
 $('emptyState').classList.remove('hidden');
+updateVideoActionBar(clearCurrent?null:S.currentVideo)}
+;
+
+// P9: 切换合集 — 隐藏操作栏
+const switchCategory=id=>{
+S.activeCategoryId=id;
+S.strategyCounter=0;
+clearPlayer();
 renderTabs();
 updateUI()}
 ;
 // P8: playVideo — file:// 播放 + 操作栏联动
 // 播放请求令牌：连续快速点击抽取时，只有最新一次播放请求生效（防竞态导致的播放失败）
-let _playToken=0;
+const commitPlayStats=(video,category,options)=>{
+video.watchCount=(video.watchCount||0)+1;
+video.playTimestamps||(video.playTimestamps=[]);
+video.playTimestamps.push(Date.now());
+video.playTimestamps.length>100&&(video.playTimestamps=video.playTimestamps.slice(-100));
+S.achievements.stats.totalPlays++;
+S.achievements.stats.categoryPlays[category.id]||(S.achievements.stats.categoryPlays[category.id]=0);
+S.achievements.stats.categoryPlays[category.id]++;
+const today=localDateKey(new Date());
+if(S.achievements.stats.lastPlayDate!==today){
+const last=S.achievements.stats.lastPlayDate;
+if(last){
+const yesterday=new Date;
+yesterday.setDate(yesterday.getDate()-1);
+last===localDateKey(yesterday)?S.achievements.stats.consecutiveDays++:S.achievements.stats.consecutiveDays=1}
+else S.achievements.stats.consecutiveDays=1;
+S.achievements.stats.lastPlayDate=today}
+const hour=new Date().getHours();
+hour>=0&&hour<=5&&S.achievements.stats.nightPlays++;
+if(!options.specialPlay){
+video.watched=!0;
+rebuildAllPools()}
+else S.achievements.stats.specialPlays++;
+addToHistory(video,category.name,category.id,video.id);
+checkAchievements();
+persistAll();
+renderTabs();
+updateUI()}
+;
+const markVideoUnplayable=(video,message,{autoAdvance=true}={})=>{
+const key=videoKey(video);
+const firstFailure=!S.unplayableVideoKeys.has(key);
+S.unplayableVideoKeys.add(key);
+rebuildAllPools();
+renderTabs();
+updateUI();
+showToast(message,firstFailure?'warning':'error',8000);
+const active=S.categories.find(c=>c.id===S.activeCategoryId);
+if(firstFailure&&autoAdvance&&active&&active.currentPool.length>0){
+setTimeout(()=>drawVideo({bypassCooldown:true}),250)}
+}
+;
 const playVideo=async(video,options={
 }
 )=>{
@@ -1864,7 +2397,9 @@ if(!category){
 showToast('无法找到视频所属分类','error');
 return}
 const player=$('mainPlayer'),container=$('videoContainer'),emptyState=$('emptyState');
+player._errorHandled=!1;
 player.onerror=function(){
+if(token!==_playToken)return;
 if(S._switching){
 S._switching=!1;
 return}
@@ -1874,19 +2409,25 @@ const exts=['mkv','avi','flv','mov','wmv','ts','m2ts'];
 const ext=video.name.split('.').pop().toLowerCase();
 if(exts.includes(ext)){
 player._errorHandled=!0;
-showToast('该视频格式('+ext.toUpperCase()+')播放器不支持直接播放，可尝试用格式工厂转为MP4','warning',8000)}
+markVideoUnplayable(video,'该视频格式('+ext.toUpperCase()+')播放器不支持直接播放，已跳过本次会话，可转为 MP4 后重试',{autoAdvance:!options.specialPlay})}
 else {
 player._errorHandled=!0;
-showToast('视频无法播放，可能文件损坏或编码不兼容','error')}
+markVideoUnplayable(video,'视频无法播放，已跳过本次会话，可能文件损坏或编码不兼容',{autoAdvance:!options.specialPlay})}
 }
 }
 ;
-if(player.src)player.removeAttribute('src');
+if(player.src){
+player.pause();
+player.removeAttribute('src');
+player.load()}
 let url;
 try{
 url=await window.api.toFileUrl(video.path)}
 catch(err){
 if(token===_playToken)showToast('视频文件读取失败','error');
+return}
+if(!url){
+if(token===_playToken)showToast('视频文件未获访问许可，请重新加载合集','error');
 return}
 if(token!==_playToken)return;
 player.src=url;
@@ -1897,38 +2438,16 @@ $('dislikeCount').textContent=video.dislikeCount||0;
 emptyState.classList.add('hidden');
 container.classList.remove('hidden');
 updateVideoActionBar(video);
-video.watchCount=(video.watchCount||0)+1;
-video.playTimestamps||(video.playTimestamps=[]);
-video.playTimestamps.push(Date.now());
-video.playTimestamps.length>100&&(video.playTimestamps=video.playTimestamps.slice(-100));
-S.achievements.stats.totalPlays++;
-S.achievements.stats.categoryPlays[category.id]||(S.achievements.stats.categoryPlays[category.id]=0);
-S.achievements.stats.categoryPlays[category.id]++;
-const today=new Date().toISOString().slice(0,10);
-if(S.achievements.stats.lastPlayDate!==today){
-const last=S.achievements.stats.lastPlayDate;
-if(last){
-const lastDate=new Date(last),yesterday=new Date;
-yesterday.setDate(yesterday.getDate()-1);
-lastDate.toISOString().slice(0,10)===yesterday.toISOString().slice(0,10)?S.achievements.stats.consecutiveDays++:S.achievements.stats.consecutiveDays=1}
-else S.achievements.stats.consecutiveDays=1;
-S.achievements.stats.lastPlayDate=today}
-const hour=new Date().getHours();
-hour>=0&&hour<=5&&S.achievements.stats.nightPlays++;
-if(!options.specialPlay){
-if(!video.watched){
-video.watched=!0;
-const index=category.currentPool.findIndex(v=>v.id===video.id);
-index!==-1&&category.currentPool.splice(index,1)}
-}
-else S.achievements.stats.specialPlays++;
-addToHistory(video,category.name,category.id,video.id);
-saveCategoryToDB(category).catch(err=>console.warn('保存播放状态失败',err));
-checkAchievements();
-saveAchievementsToDB();
-updateUI();
 if(token!==_playToken)return;
-player.play().catch(e=>{
+await loadSubtitleForVideo(video,token);
+if(token!==_playToken)return;
+try{
+await player.play();
+if(token!==_playToken)return;
+S._switching=!1;
+commitPlayStats(video,category,options)}
+catch(e){
+if(token!==_playToken)return;
 if(S._switching){
 S._switching=!1;
 return}
@@ -1936,8 +2455,10 @@ if(player._errorHandled){
 player._errorHandled=!1;
 return}
 console.log('播放失败:',e);
-showToast('播放失败，可能文件已损坏或格式不支持','error')}
-)}
+markVideoUnplayable(video,'播放失败，已跳过本次会话，可能文件已损坏或格式不支持',{autoAdvance:!options.specialPlay});
+container.classList.add('hidden');
+emptyState.classList.remove('hidden')}
+}
 ;
 const playSpecificVideo=async(categoryId,videoId,from='')=>{
 const category=S.categories.find(c=>c.id===categoryId);
@@ -1951,7 +2472,7 @@ const video=category.videos.find(v=>v.id===videoId);
 if(!video){
 showToast('视频不存在','error');
 return}
-S.activeCategoryId=categoryId;
+if(S.activeCategoryId!==categoryId)switchCategory(categoryId);
 S.currentVideo=video;
 await playVideo(video,{
 specialPlay:!0}
@@ -1960,9 +2481,9 @@ specialPlay:!0}
 
 // 抽取冷却：连续快速点击只生效一次（600ms CD），配合播放令牌防止竞态报错
 let _lastDrawAt=0;
-const drawVideo=()=>{
+const drawVideo=(options={})=>{
 const now=Date.now();
-if(now-_lastDrawAt<600)return;
+if(!options.bypassCooldown&&now-_lastDrawAt<600)return;
 _lastDrawAt=now;
 
   const category=S.categories.find(c=>c.id===S.activeCategoryId);
@@ -1972,10 +2493,12 @@ showToast('请先加载该合集','warning');
 return}
 
   if(category.currentPool.length===0){
-showToast('当前合集已观看完毕，请重置当前合集','info');
+const hasSkipped=(category.videos||[]).some(video=>!video.watched&&S.unplayableVideoKeys.has(videoKey(video)));
+showToast(hasSkipped?'当前合集剩余视频本次会话均无法播放，请检查格式或重新扫描':'当前合集已观看完毕，请重置当前合集','info');
 return}
 
   let pool = category.currentPool;
+  if(S.currentVideo&&pool.length>1)pool=pool.filter(v=>v.id!==S.currentVideo.id);
 
   let specialPool = [];
 
@@ -2034,7 +2557,7 @@ const category=S.categories.find(c=>c.id===S.activeCategoryId);
 if(!category)return;
 const video=category.videos.find(v=>v.id===S.currentVideo.id);
 if(!video)return;
-if(video.likeCount>=video.watchCount){
+if((video.likeCount||0)-(video.likeCountBaseline||0)>=video.watchCount){
 showToast('点赞次数不能超过观看次数','warning');
 return;
 }
@@ -2063,86 +2586,92 @@ saveAchievementsToDB();
 saveCategoryToDB(category).catch(err=>console.warn('保存点踩失败',err))}
 ;
 
+const isNaturalMediaEnd=player=>player.ended&&Number.isFinite(player.duration)&&player.duration>0&&player.currentTime>=player.duration-.05;
 const onVideoEnded=()=>{
-drawVideo();
+if(!isNaturalMediaEnd($('mainPlayer')))return;
+drawVideo({bypassCooldown:true});
 }
 ;
 
-const resetCurrentPool=async()=>{
+const resetCurrentPool=()=>runPersistedAction(async()=>{
 if(!(await showConfirmDialog('重置当前合集的观看记录？此操作不会清除已累计的观看次数和点赞。')))return;
 const category=S.categories.find(c=>c.id===S.activeCategoryId);
 if(category){
+const watchedSnapshot=category.videos.map(video=>({video,watched:video.watched}));
+const previousAchievements=clonePersistedValue(S.achievements);
 category.videos.forEach(v=>v.watched=!1);
-category.currentPool=[...category.videos];
-await saveCategoryToDB(category);
+syncTagCategories();
+rebuildAllPools();
 S.achievements.stats.totalResets++;
+const committed=await commitPersistedChange({
+rollback:()=>{
+watchedSnapshot.forEach(({video,watched})=>video.watched=watched);
+S.achievements=previousAchievements;
+syncTagCategories();
+rebuildAllPools()},
+refresh:()=>{
+renderTabs();
+updateUI()},
+failureMessage:'当前合集重置失败'});
+if(!committed)return;
 checkAchievements();
-saveAchievementsToDB();
 renderTabs();
 updateUI();
 showToast('当前合集已重置','success')}
-}
+})
 ;
 
 // P13: 数据初始化（安全清空：先自动备份）
-const resetAllPools=async()=>{
+const resetAllPools=()=>runPersistedAction(async()=>{
 if(!(await showConfirmDialog('数据初始化：将删除所有合集并重置所有数据（包括成就、历史、点赞等）。\n\n执行前会自动备份当前数据到 data/backups/。')))return;
-await autoBackupBeforeOverwrite();
+if(!(await autoBackupBeforeOverwrite())){
+showToast('自动备份失败，已取消初始化','error',6000);
+return}
+const emptyAchievements=normalizeAchievements(null);
+const nextState={categories:[],achievements:emptyAchievements,settings:S.settings,strategy:S.strategy};
+const saved=await persistPayloadNow(buildPersistPayload(nextState),{showError:false});
+if(!saved.ok){
+showToast('数据初始化失败，原数据保持不变: '+saved.error,'error',8000);
+return}
+clearPlayer();
 S.categories=[];
 S.activeCategoryId=null;
 S.currentVideo=null;
 S.history=[];
-S.achievements={
-stats:{
-totalPlays:0,totalCollections:0,totalResets:0,totalRefreshes:0,consecutiveDays:0,lastPlayDate:null,totalSeeks:0,categoryPlays:{
-}
-,totalLikes:0,totalDislikes:0,specialPlays:0,logoClickCount:0,nightPlays:0}
-,unlocked:{
-}
-}
-;
-await persistAll();
+S.unplayableVideoKeys.clear();
+S.achievements=emptyAchievements;
 renderTabs();
 updateUI();
 updateConnectionStatus();
-$('videoContainer').classList.add('hidden');
-$('emptyState').classList.remove('hidden');
-updateVideoActionBar(null);
-showToast('数据初始化完成','success')}
+showToast('数据初始化完成','success')})
 ;
-const deleteCurrentCategory=async()=>{
+const deleteCurrentCategory=()=>runPersistedAction(async()=>{
 const category=S.categories.find(c=>c.id===S.activeCategoryId);
 if(!category){
 showToast('没有选中的合集','warning');
 return}
 if(!(await showConfirmDialog(`确定要删除合集 "${category.name}" 吗？此操作不可恢复。`)))return;
-await deleteCategoryFromDB(category.id);
-const index=S.categories.findIndex(c=>c.id===category.id);
-index!==-1&&S.categories.splice(index,1);
-if(category.id===S.activeCategoryId){
-if(S.categories.length>0)S.activeCategoryId=S.categories[0].id;
-else{
-S.activeCategoryId=null;
-const player=$('mainPlayer');
-player.onerror=null;
-player.pause();
-if(player.src){
-if(player.src.startsWith('blob:')){
-try{
-URL.revokeObjectURL(player.src)}
-catch(e){
-}
-}
-player.removeAttribute('src');
-player.load()}
-;
-$('videoContainer').classList.add('hidden');
-$('emptyState').classList.remove('hidden')}
-}
+const wasActive=category.id===S.activeCategoryId;
+const previousCategories=[...S.categories];
+const previousActiveId=S.activeCategoryId;
+const previousCurrentVideo=S.currentVideo;
+const saved=await deleteCategoryFromDB(category.id);
+if(!saved.ok){
+S.categories=previousCategories;
+S.activeCategoryId=previousActiveId;
+S.currentVideo=previousCurrentVideo;
+syncTagCategories();
 renderTabs();
 updateUI();
 updateConnectionStatus();
-showToast(`合集 "${category.name}" 已删除`,'success')}
+showToast(`合集删除失败，原状态已恢复: ${saved.error}`,'error',8000);
+return}
+if(wasActive)clearPlayer();
+if(wasActive)S.activeCategoryId=S.categories.length>0?S.categories[0].id:null;
+renderTabs();
+updateUI();
+updateConnectionStatus();
+showToast(`合集 "${category.name}" 已删除`,'success')})
 ;
 
 // 扫描重建后：同步当前播放视频（文件被外部改名/删除时清理播放器）
@@ -2154,30 +2683,24 @@ S.currentVideo=nv;
 updateVideoActionBar(nv);
 return}
 S.currentVideo=null;
-const player=$('mainPlayer');
-player.pause();
-player.removeAttribute('src');
-player.load();
-$('videoContainer').classList.add('hidden');
-$('emptyState').classList.remove('hidden');
-updateVideoActionBar(null);
+clearPlayer();
 showToast('当前播放的视频已不在列表中','info')}
 ;
 
 // 补充当前合集：追加其他文件夹的视频到当前合集（可多选，合并扫描）
-const supplementCurrentCategory=async()=>{
+const supplementCurrentCategory=()=>runPersistedAction(async()=>{
 const category=S.categories.find(c=>c.id===S.activeCategoryId);
 if(!category){
 showToast('没有选中的合集','warning');
 return}
 if(!category.permissionRestored){
-showToast('请先加载该合集','warning');
-return}
+return attemptCategoryAuthCore(category)}
 const dirs=await pickRootsForCategory(category);
 if(dirs.length===0){
 showToast('未添加任何文件夹','info');
 return}
 const added=[];
+const snapshot=captureCategoryScanState(category);
 for(const dir of dirs){
 if(!category.roots.includes(dir)){
 category.roots.push(dir);
@@ -2187,47 +2710,63 @@ showToast('所选文件夹已在合集中','info');
 return}
 const oldCount=category.videos.length;
 showToast('正在扫描新增文件夹...','info');
-await loadVideosFromHandles(category);
-category.permissionRestored=!0;
+const scan=await loadVideosFromHandles(category,{confirmEmpty:true,skipTagSync:true});
+if(!scan.ok){
+restoreCategoryScanState(category,snapshot);
+syncTagCategories();
+showToast('新增目录扫描未完成，已保留原合集','warning',6000);
+return}
+const committed=await commitPersistedChange({
+rollback:()=>{
+restoreCategoryScanState(category,snapshot);
+syncTagCategories()},
+refresh:()=>{
+renderTabs();
+updateUI();
+updateConnectionStatus()},
+failureMessage:'补充合集保存失败'});
+if(!committed)return;
+syncTagCategories();
 syncCurrentVideoAfterRescan(category);
-await saveCategoryToDB(category);
 renderTabs();
 updateUI();
 const delta=category.videos.length-oldCount;
-showToast(`已补充 ${added.length} 个文件夹，合集现有 ${category.videos.length} 个视频${delta>0?`（新增 ${delta}）`:''}`,'success')}
+showToast(`已补充 ${added.length} 个文件夹，合集现有 ${category.videos.length} 个视频${delta>0?`（新增 ${delta}）`:''}`,'success')})
 ;
 
-const refreshCurrentCategory=async()=>{
+const refreshCurrentCategory=()=>runPersistedAction(async()=>{
 const category=S.categories.find(c=>c.id===S.activeCategoryId);
 if(!category){
 showToast('没有选中的合集','warning');
 return}
 if(!category.permissionRestored){
-showToast('请先加载该合集','warning');
-return}
+return attemptCategoryAuthCore(category)}
 showToast(`正在更新合集 "${category.name}" 的视频列表...`,'info');
-const oldVideos=category.videos;
-await loadVideosFromHandles(category);
-// 防误清空：原列表有视频而新扫描为 0（文件夹被移动/暂不可访问），确认后才覆盖
-if(category.videos.length===0&&oldVideos.length>0){
-if(!(await showConfirmDialog(`"${category.name}" 扫描到 0 个视频（原列表有 ${oldVideos.length} 个）。\n可能是文件夹被移动或暂不可访问。\n\n仍要清空该合集列表吗？`))){
-category.videos=oldVideos;
-category.currentPool=oldVideos.filter(v=>!v.watched);
-syncCurrentVideoAfterRescan(category);
-await saveCategoryToDB(category);
-showToast('已保留原视频列表','info');
+const snapshot=captureCategoryScanState(category);
+const previousAchievements=clonePersistedValue(S.achievements);
+const scan=await loadVideosFromHandles(category,{confirmEmpty:true,skipTagSync:true});
+if(!scan.ok){
 renderTabs();
 updateUI();
 return}
-}
-syncCurrentVideoAfterRescan(category);
-await saveCategoryToDB(category);
 S.achievements.stats.totalRefreshes++;
-checkAchievements();
-saveAchievementsToDB();
+const committed=await commitPersistedChange({
+rollback:()=>{
+restoreCategoryScanState(category,snapshot);
+S.achievements=previousAchievements;
+syncTagCategories()},
+refresh:()=>{
 renderTabs();
 updateUI();
-showToast(`更新完成，共 ${category.videos.length} 个视频`,'success')}
+updateConnectionStatus()},
+failureMessage:'更新合集保存失败'});
+if(!committed)return;
+syncTagCategories();
+syncCurrentVideoAfterRescan(category);
+checkAchievements();
+renderTabs();
+updateUI();
+showToast(`更新完成，共 ${category.videos.length} 个视频`,'success')})
 ;
 
 // 构建备份包（供手动备份与覆盖前自动备份共用）
@@ -2235,17 +2774,17 @@ const buildBackupPackage=()=>{
 const backup=S.categories.map(cat=>({
 id:cat.id,name:cat.name,type:cat.type||'single',roots:cat.roots||[],tags:cat.tags||[],
 // 5.0: 标签合集是派生数据（视频引用自普通合集），备份不重复打包，恢复后自动聚合重建
-videos:cat.type==='tags'?[]:cat.videos.map(v=>({
-id:v.id,name:v.name,path:v.path||'',rootName:v.rootName||'',relPath:v.relPath||'',size:v.size,watched:v.watched,watchCount:v.watchCount||0,likeCount:v.likeCount||0,dislikeCount:v.dislikeCount||0,playTimestamps:v.playTimestamps||[],likeTimestamps:v.likeTimestamps||[],seekTimestamps:v.seekTimestamps||[],tags:v.tags||[]}
+videos:cat.type==='tags'?[]:persistableVideos(cat).map(v=>({
+id:v.id,name:v.name,path:v.path||'',rootName:v.rootName||'',relPath:v.relPath||'',size:v.size,watched:v.watched,watchCount:v.watchCount||0,likeCount:v.likeCount||0,likeCountBaseline:v.likeCountBaseline||0,dislikeCount:v.dislikeCount||0,playTimestamps:v.playTimestamps||[],likeTimestamps:v.likeTimestamps||[],seekTimestamps:v.seekTimestamps||[],tags:v.tags||[]}
 )),order:cat.order||0}
 ));
 return {
 categories:backup,achievements:S.achievements,version:12,
 settings:{
-prefixPresets:S.settings.prefixPresets,tags:S.settings.tags||[],lastStrategy:S.strategy}
+prefixPresets:S.settings.prefixPresets,tags:S.settings.tags||[],lastStrategy:S.strategy,lastPrefix:S.settings.lastPrefix||'',subtitleDir:S.settings.subtitleDir||'',subtitleEnabled:S.settings.subtitleEnabled!==false}
 ,
 meta:{
-appVersion:'4.0',backupTime:new Date().toISOString(),categoryCount:backup.length,
+appVersion:S.appVersion,backupTime:new Date().toISOString(),categoryCount:backup.length,
 totalVideos:backup.reduce((s,c)=>s+(c.videos?c.videos.length:0),0),
 rootFolders:[...new Set(backup.map(c=>c.videos&&c.videos[0]?(c.videos[0].rootName||c.name):c.name))]}
 }
@@ -2259,9 +2798,11 @@ const r=await window.api.autoBackup(buildBackupPackage());
 if(r&&r.ok){
 showToast('已自动备份当前数据','info',4000);
 return true}
+if(r&&r.error)showToast('自动备份失败: '+r.error,'error',6000);
 return false}
 catch(err){
 console.warn('自动备份失败',err);
+showToast('自动备份失败: '+err.message,'error',6000);
 return false}
 }
 ;
@@ -2279,85 +2820,103 @@ showToast('备份出错: '+err.message,'error')}
 }
 ;
 // P12: 恢复 — 原生打开对话框
-const restoreData=async()=>{
+const restoreData=()=>runPersistedAction(async()=>{
 const file=await window.api.pickBackupFile();
 if(!file)return;
 try{
 const text=await window.api.readText(file);
+if(typeof text!=='string')throw new Error('无法读取所选备份文件');
 const backupPackage=JSON.parse(text);
 if(!backupPackage.categories||!Array.isArray(backupPackage.categories)){
 showToast('备份文件格式错误','error');
 return}
+if(!backupPackage.categories.every(item=>item&&typeof item==='object'))throw new Error('备份文件包含无效合集');
 const meta=backupPackage.meta||{};
 const summary=meta.categoryCount?`\n合集数: ${meta.categoryCount}\n视频总数: ${meta.totalVideos||'?'}\n备份时间: ${(meta.backupTime||'').slice(0,16)}`:'';
 const confirmed=await showConfirmDialog(`即将恢复备份数据，当前数据将被覆盖！${summary}\n\n确定恢复？`);
 if(!confirmed)return;
-await autoBackupBeforeOverwrite();
-S.categories=backupPackage.categories.map(item=>({
-id:item.id,name:item.name,type:item.type||'single',roots:Array.isArray(item.roots)?item.roots:[],tags:Array.isArray(item.tags)?item.tags:[],videoMetas:item.videos||item.videoMetas||[],videos:[],currentPool:[],order:item.order||0,persistent:!0,permissionRestored:!1}
-));
-if(backupPackage.achievements&&backupPackage.achievements.stats)S.achievements=backupPackage.achievements;
-else S.achievements={
-stats:{
-totalPlays:0,totalCollections:0,totalResets:0,totalRefreshes:0,consecutiveDays:0,lastPlayDate:null,totalSeeks:0,categoryPlays:{
-}
-,totalLikes:0,totalDislikes:0,specialPlays:0,logoClickCount:0,nightPlays:0}
-,unlocked:{
-}
-}
+if(!(await autoBackupBeforeOverwrite())){
+showToast('自动备份失败，已取消恢复','error',6000);
+return}
+const nextCategories=backupPackage.categories.map(item=>{
+const metas=(item.videos||item.videoMetas||[]).map(normalizeVideoMeta);
+return {id:item.id,name:item.name,type:item.type||'single',roots:normalizeRoots(item.roots),tags:Array.isArray(item.tags)?item.tags:[],videoMetas:metas,videos:item.type==='tags'?[]:metas,currentPool:item.type==='tags'?[]:buildCurrentPool(metas),order:item.order||0,persistent:!0,permissionRestored:item.type==='tags'}}
+);
+const nextAchievements=normalizeAchievements(backupPackage.achievements);
+const nextSettings={
+prefixPresets:[...(S.settings.prefixPresets||[])],tags:[...(S.settings.tags||[])],lastStrategy:S.strategy,lastPrefix:S.settings.lastPrefix||'',subtitleDir:S.settings.subtitleDir||'',subtitleEnabled:S.settings.subtitleEnabled!==false}
 ;
+let nextStrategy=S.strategy;
 if(backupPackage.settings){
-if(Array.isArray(backupPackage.settings.prefixPresets)&&backupPackage.settings.prefixPresets.length>0)S.settings.prefixPresets=backupPackage.settings.prefixPresets;
-if(Array.isArray(backupPackage.settings.tags)&&backupPackage.settings.tags.length>0)S.settings.tags=backupPackage.settings.tags;
-if(backupPackage.settings.lastStrategy)S.strategy=backupPackage.settings.lastStrategy}
-S.history=[];
-S.currentVideo=null;
-S.activeCategoryId=S.categories.length>0?S.categories[0].id:null;
-await persistAll();
+if(Array.isArray(backupPackage.settings.prefixPresets))nextSettings.prefixPresets=backupPackage.settings.prefixPresets.filter(value=>typeof value==='string');
+if(Array.isArray(backupPackage.settings.tags))nextSettings.tags=backupPackage.settings.tags.filter(value=>typeof value==='string');
+if(['default','liked','short','long'].includes(backupPackage.settings.lastStrategy))nextStrategy=backupPackage.settings.lastStrategy;
+if(typeof backupPackage.settings.lastPrefix==='string')nextSettings.lastPrefix=backupPackage.settings.lastPrefix;
+if(typeof backupPackage.settings.subtitleDir==='string')nextSettings.subtitleDir=backupPackage.settings.subtitleDir;
+if(typeof backupPackage.settings.subtitleEnabled==='boolean')nextSettings.subtitleEnabled=backupPackage.settings.subtitleEnabled}
+nextSettings.lastStrategy=nextStrategy;
 const missingRoots=[],emptyScans=[];
-for(const cat of S.categories){
+for(const cat of nextCategories){
 if(cat.type==='tags'){
 cat.permissionRestored=!0;
 continue}
 if(cat.roots&&cat.roots.length>0){
-await loadVideosFromHandles(cat);
-cat.permissionRestored=!0;
-if(cat.videos.length===0)emptyScans.push(cat.name)}
+const scan=await loadVideosFromHandles(cat,{silent:true,skipTagSync:true});
+if(!scan.ok){
+cat.permissionRestored=!1;
+if(scan.empty)emptyScans.push(cat.name);
+else missingRoots.push(cat.name)}}
 else{
 cat.permissionRestored=!1;
 missingRoots.push(cat.name)}}
+const nextState={categories:nextCategories,achievements:nextAchievements,settings:nextSettings,strategy:nextStrategy};
+const saved=await persistPayloadNow(buildPersistPayload(nextState),{showError:false});
+if(!saved.ok){
+showToast('恢复失败，原数据保持不变: '+saved.error,'error',8000);
+return}
+clearPlayer();
+S.categories=nextCategories;
+S.achievements=nextAchievements;
+S.settings=nextSettings;
+S.strategy=nextStrategy;
+S.history=[];
+S.unplayableVideoKeys.clear();
+rebuildAllPools();
+S.activeCategoryId=S.categories.length>0?S.categories[0].id:null;
 syncTagCategories();
-await persistAll();
-$('videoContainer').classList.add('hidden');
-$('emptyState').classList.remove('hidden');
-updateVideoActionBar(null);
 updateConnectionStatus();
 renderTabs();
 updateUI();
 if(!$('backupRestoreModal').classList.contains('hidden'))closeBackupRestoreModal();
 showToast('数据恢复成功！未关联文件夹的合集请点击「关联文件夹」','success',6000);
 if(emptyScans.length>0){
-setTimeout(()=>showToast(`恢复完成，但 ${emptyScans.length} 个合集路径已失效（${emptyScans.join('、')}），请点击「关联文件夹」重新选择路径`,'warning',9000),800)}
+setTimeout(()=>showToast(`恢复完成，但 ${emptyScans.length} 个合集扫描为空（${emptyScans.join('、')}），原元数据已保留，请手动更新确认`,'warning',9000),800)}
+if(missingRoots.length>0){
+setTimeout(()=>showToast(`${missingRoots.length} 个合集目录不可访问，原元数据已保留，请重新关联目录`,'warning',9000),1000)}
 }
 catch(err){
 console.error(err);
-showToast('恢复失败: '+err.message,'error')}
-}
+showToast('恢复失败，原数据保持不变: '+err.message,'error',8000)}
+})
 ;
-const resetStatistics=async()=>{
+const resetStatistics=()=>runPersistedAction(async()=>{
 if(!(await showConfirmDialog('确定要重置播放次数和浏览历史吗？此操作不会影响点赞、点踩和成就。')))return;
-let modified=!1;
-for(const cat of S.categories){
+const videoSnapshots=[];
+normalCategories().forEach(cat=>cat.videos.forEach(video=>videoSnapshots.push({
+video,likeCountBaseline:video.likeCountBaseline,watchCount:video.watchCount,
+playTimestamps:video.playTimestamps,likeTimestamps:video.likeTimestamps,seekTimestamps:video.seekTimestamps})));
+const previousHistory=[...S.history];
+const previousAchievements=clonePersistedValue(S.achievements);
+for(const cat of normalCategories()){
 cat.videos.forEach(v=>{
+v.likeCountBaseline=v.likeCount||0;
 if(v.watchCount>0||v.playTimestamps.length>0||v.likeTimestamps.length>0||v.seekTimestamps.length>0){
 v.watchCount=0;
 v.playTimestamps=[];
 v.likeTimestamps=[];
-v.seekTimestamps=[];
-modified=!0}
+v.seekTimestamps=[]}
 }
-);
-if(modified)await saveCategoryToDB(cat)}
+)}
 S.history=[];
 S.achievements.stats.totalPlays=0;
 S.achievements.stats.categoryPlays={
@@ -2368,9 +2927,24 @@ S.achievements.stats.lastPlayDate=null;
 S.achievements.stats.nightPlays=0;
 S.achievements.stats.specialPlays=0;
 S.achievements.stats.totalSeeks=0;
-await saveAchievementsToDB();
+const committed=await commitPersistedChange({
+rollback:()=>{
+videoSnapshots.forEach(snapshot=>{
+snapshot.video.likeCountBaseline=snapshot.likeCountBaseline;
+snapshot.video.watchCount=snapshot.watchCount;
+snapshot.video.playTimestamps=snapshot.playTimestamps;
+snapshot.video.likeTimestamps=snapshot.likeTimestamps;
+snapshot.video.seekTimestamps=snapshot.seekTimestamps});
+S.history=previousHistory;
+S.achievements=previousAchievements},
+refresh:()=>{
 if(!$('statsModal').classList.contains('hidden'))showStatsModal();
-showToast('统计已重置','success')}
+renderTabs();
+updateUI()},
+failureMessage:'统计重置失败'});
+if(!committed)return;
+if(!$('statsModal').classList.contains('hidden'))showStatsModal();
+showToast('统计已重置','success')})
 ;
 
 const getCutoffTime=range=>{
@@ -2405,7 +2979,8 @@ const getWatchIndexInRange=(video,cutoff)=>{
 
   const adjustedSeek=seekCount/(1+Math.sqrt(sizeMB));
 
-  return Math.sqrt(playCount) * (adjustedSeek * 1 + likeCount * 0.9);
+  if(playCount===0)return 0;
+  return Math.sqrt(playCount) * (1 + adjustedSeek + likeCount * 0.9);
  // 新公式
 }
 ;
@@ -2413,12 +2988,10 @@ const getWatchIndexInRange=(video,cutoff)=>{
 const getTopVideosByRange=(range,limit=10)=>{
 const cutoff=getCutoffTime(range);
 const videoScores=[];
-S.categories.forEach(cat=>{
-cat.videos.forEach(v=>{
+uniqueSourceVideos().forEach(({category:cat,video:v})=>{
 const score=getWatchIndexInRange(v,cutoff);
 if(score>0)videoScores.push({
 name:v.name,categoryId:cat.id,videoId:v.id,score}
-)}
 )}
 );
 videoScores.sort((a,b)=>b.score-a.score);
@@ -2435,7 +3008,7 @@ if(top10.length===0)listDiv.innerHTML='<p class="text-gray-500 text-sm text-cent
 else{
 let html='';
 top10.forEach((v,idx)=>{
-html+=`<div class="stat-item" data-category-id="${v.categoryId}" data-video-id="${v.videoId}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${v.name}">${v.name}</span></div>`}
+html+=`<div class="stat-item" data-category-id="${escapeHtml(v.categoryId)}" data-video-id="${escapeHtml(v.videoId)}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${escapeHtml(v.name)}">${escapeHtml(v.name)}</span></div>`}
 );
 listDiv.innerHTML=html}
 }
@@ -2476,9 +3049,8 @@ const hourCounts=new Array(24).fill(0);
 const categorySums={
 }
 ;
-S.categories.forEach(cat=>{
-let catScore=0;
-cat.videos.forEach(v=>{
+normalCategories().forEach(cat=>categorySums[cat.id]={name:cat.name,score:0});
+uniqueSourceVideos().forEach(({category:cat,video:v})=>{
 const plays=v.playTimestamps.filter(ts=>ts>=cutoff).length;
 const likes=v.likeTimestamps.filter(ts=>ts>=cutoff).length;
 const seeks=v.seekTimestamps.filter(ts=>ts>=cutoff).length;
@@ -2490,15 +3062,7 @@ const hour=new Date(ts).getHours();
 hourCounts[hour]++}
 }
 );
-const sizeMB=v.size/(1024*1024);
-const adjustedSeek=seeks/(1+Math.sqrt(sizeMB));
-const score=Math.sqrt(plays) * (adjustedSeek * 1 + likes * 0.9);
- // 报告中的指数
-catScore+=score}
-);
-categorySums[cat.id]={
-name:cat.name,score:catScore}
-}
+categorySums[cat.id].score+=getWatchIndexInRange(v,cutoff)}
 );
 $('reportTotalPlays').innerText=totalPlays;
 $('reportTotalLikes').innerText=totalLikes;
@@ -2531,7 +3095,7 @@ videoList.innerHTML='<p class="text-gray-500 text-sm">暂无数据</p>'}
 else{
 let html='';
 topVideos.forEach((v,idx)=>{
-html+=`<div class="stat-item"><span class="stat-rank">${idx+1}.</span><span class="stat-name">${v.name}</span></div>`}
+html+=`<div class="stat-item"><span class="stat-rank">${idx+1}.</span><span class="stat-name">${escapeHtml(v.name)}</span></div>`}
 );
 videoList.innerHTML=html}
 modal.style.display='flex';
@@ -2559,11 +3123,9 @@ link.click()}
 const showLikedModal=()=>{
 S._lastModalOpen=Date.now();
 const modal=$('likedModal'),listDiv=$('likedList'),likedVideos=[];
-S.categories.forEach(cat=>{
-cat.videos.forEach(v=>{
+uniqueSourceVideos().forEach(({category:cat,video:v})=>{
 v.likeCount>0&&likedVideos.push({
 name:v.name,categoryId:cat.id,videoId:v.id,count:v.likeCount,path:v.path||''}
-)}
 )}
 );
 likedVideos.sort((a,b)=>b.count-a.count);
@@ -2571,7 +3133,7 @@ if(likedVideos.length===0)listDiv.innerHTML='<p class="text-gray-500 text-sm tex
 else{
 let html='';
 likedVideos.forEach((v,idx)=>{
-html+=`<div class="stat-item" data-category-id="${v.categoryId}" data-video-id="${v.videoId}" title="${v.path}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${v.name}">${v.name}</span><span class="stat-value">${v.count}❤️</span></div>`}
+html+=`<div class="stat-item" data-category-id="${escapeHtml(v.categoryId)}" data-video-id="${escapeHtml(v.videoId)}" title="${escapeHtml(v.path)}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${escapeHtml(v.name)}">${escapeHtml(v.name)}</span><span class="stat-value">${v.count}❤️</span></div>`}
 );
 listDiv.innerHTML=html}
 modal.style.display='flex';
@@ -2589,11 +3151,9 @@ m.classList.add('hidden')}
 const showDislikedModal=()=>{
 S._lastModalOpen=Date.now();
 const modal=$('dislikedModal'),listDiv=$('dislikedList'),dislikedVideos=[];
-S.categories.forEach(cat=>{
-cat.videos.forEach(v=>{
+uniqueSourceVideos().forEach(({category:cat,video:v})=>{
 v.dislikeCount>0&&dislikedVideos.push({
 name:v.name,categoryId:cat.id,videoId:v.id,count:v.dislikeCount,path:v.path||''}
-)}
 )}
 );
 dislikedVideos.sort((a,b)=>b.count-a.count);
@@ -2601,7 +3161,7 @@ if(dislikedVideos.length===0)listDiv.innerHTML='<p class="text-gray-500 text-sm 
 else{
 let html='';
 dislikedVideos.forEach((v,idx)=>{
-html+=`<div class="stat-item" data-category-id="${v.categoryId}" data-video-id="${v.videoId}" title="${v.path}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${v.name}">${v.name}</span><span class="stat-value">${v.count}👎</span></div>`}
+html+=`<div class="stat-item" data-category-id="${escapeHtml(v.categoryId)}" data-video-id="${escapeHtml(v.videoId)}" title="${escapeHtml(v.path)}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${escapeHtml(v.name)}">${escapeHtml(v.name)}</span><span class="stat-value">${v.count}👎</span></div>`}
 );
 listDiv.innerHTML=html}
 modal.style.display='flex';
@@ -2623,7 +3183,7 @@ if(S.history.length===0)listDiv.innerHTML='<p class="text-gray-500 text-sm text-
 else{
 let html='';
 S.history.slice(0,20).forEach((item,idx)=>{
-html+=`<div class="stat-item" data-category-id="${item.categoryId}" data-video-id="${item.videoId}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${item.name}">${item.name}</span><span class="stat-value">${item.time}</span></div>`}
+html+=`<div class="stat-item" data-category-id="${escapeHtml(item.categoryId)}" data-video-id="${escapeHtml(item.videoId)}"><span class="stat-rank">${idx+1}.</span><span class="stat-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span><span class="stat-value">${escapeHtml(item.time)}</span></div>`}
 );
 listDiv.innerHTML=html}
 modal.style.display='flex';
@@ -2680,28 +3240,40 @@ m.style.display='none';
 m.classList.add('hidden')}
 ;
 
-const refreshAllCollections=async()=>{
-const authorizedCats=S.categories.filter(c=>c.permissionRestored);
+const refreshAllCollections=()=>runPersistedAction(async()=>{
+const authorizedCats=normalCategories().filter(c=>c.permissionRestored);
 if(authorizedCats.length===0)return;
 showToast(`正在刷新 ${authorizedCats.length} 个合集，请稍候...`,'info',3000);
 for(const cat of authorizedCats){
-await loadVideosFromHandles(cat);
-await saveCategoryToDB(cat);
-S.achievements.stats.totalRefreshes++}
-checkAchievements();
-saveAchievementsToDB();
+const snapshot=captureCategoryScanState(cat);
+const previousAchievements=clonePersistedValue(S.achievements);
+const scan=await loadVideosFromHandles(cat,{confirmEmpty:true,skipTagSync:true});
+if(!scan.ok)continue;
+S.achievements.stats.totalRefreshes++;
+const committed=await commitPersistedChange({
+rollback:()=>{
+restoreCategoryScanState(cat,snapshot);
+S.achievements=previousAchievements;
+syncTagCategories()},
+refresh:()=>{
 renderTabs();
-updateUI()}
+updateUI()},
+failureMessage:`合集 "${cat.name}" 刷新保存失败`});
+if(committed)syncTagCategories()}
+checkAchievements();
+renderTabs();
+updateUI()})
 ;
 
 // P15: 点赞/点踩清单导出 — 真实绝对路径（跨合集去重，过滤非绝对路径）
 const collectRealPaths=matchFn=>{
 const seen=new Set(),paths=[];
-S.categories.forEach(cat=>{
+normalCategories().forEach(cat=>{
 (cat.videos||[]).forEach(v=>{
 if(matchFn(v)&&v.path&&v.path.includes(':')){
-if(seen.has(v.path))return;
-seen.add(v.path);
+const key=String(v.path).toLowerCase();
+if(seen.has(key))return;
+seen.add(key);
 paths.push(v.path)}
 });
 });
@@ -2711,7 +3283,7 @@ return paths}
 const exportLikedList=async()=>{
 const paths=collectRealPaths(v=>v.likeCount>0);
 if(paths.length===0){
-showToast('没有点赞视频可导出','warning');
+showToast('没有喜爱视频可导出','warning');
 return}
 const saved=await window.api.saveText(paths.join('\n'),`liked_videos_${new Date().toISOString().slice(0,10)}.txt`);
 if(saved)showToast(`已导出 ${paths.length} 个视频的真实路径`,'success')}
@@ -2800,6 +3372,9 @@ showToast(`点击图标 ${S.achievements.stats.logoClickCount}/5`,'info')}
 
 const updateUI=()=>{
 const category=S.categories.find(c=>c.id===S.activeCategoryId);
+const isTags=!!(category&&category.type==='tags');
+$('supplementBtn')&&($('supplementBtn').style.display=isTags?'none':'');
+$('refreshBtn')&&($('refreshBtn').style.display=isTags?'none':'');
 if(!category||!category.permissionRestored){
 $('poolBadge').textContent=category?'待关联':'未选择';
 $('poolBadge').className='px-2 py-1 text-xs font-bold bg-yellow-500/20 text-yellow-300 rounded-md';
@@ -2815,9 +3390,6 @@ $('progressBar').style.width='0%';
 return}
 const total=category.videos.length,remaining=category.currentPool.length,watched=total-remaining;
 // 标签合集：动态聚合，不提供补充/更新（只重置/删除）
-const isTags=category.type==='tags';
-$('supplementBtn')&&($('supplementBtn').style.display=isTags?'none':'');
-$('refreshBtn')&&($('refreshBtn').style.display=isTags?'none':'');
 $('poolBadge').textContent=category.name;
 $('poolBadge').className='px-2 py-1 text-xs font-bold bg-indigo-500/20 text-indigo-300 rounded-md';
 $('remainingCount').textContent=remaining;
@@ -2892,18 +3464,18 @@ const t=document.activeElement;
 if(t&&t.blur)t.blur()}
 ;
 
-let _lastShortcutTime=0;
-const _shortcutGuard=()=>{
+const _lastShortcutTime={draw:0,delete:0};
+const _shortcutGuard=action=>{
 const now=Date.now();
-if(now-_lastShortcutTime<500)return false;
-_lastShortcutTime=now;
+if(now-_lastShortcutTime[action]<500)return false;
+_lastShortcutTime[action]=now;
 return true}
 ;
 
 // Ctrl+D: 随机抽取（全局可用；删除确认弹窗打开时忽略，避免删除目标错乱）
 const handleShortcutDraw=()=>{
-if(!_shortcutGuard())return;
-if(isModalVisible('deleteVideoModal'))return;
+if(!_shortcutGuard('draw'))return;
+if(anyModalVisible())return;
 drawVideo()}
 ;
 
@@ -2911,10 +3483,11 @@ drawVideo()}
 // 输入框聚焦时保留文字编辑（Delete=删字符），不做任何删除
 const handleShortcutDelete=()=>{
 if(isTypingTarget())return;
-if(!_shortcutGuard())return;
+if(!_shortcutGuard('delete'))return;
 if(isModalVisible('deleteVideoModal')){
 doDeleteCurrentVideo();
 return}
+if(anyModalVisible())return;
 confirmDeleteCurrentVideo()}
 ;
 
@@ -2931,16 +3504,26 @@ return}
 },true);
 
 
+const closeTopModal=()=>{
+const visible=Array.from(document.querySelectorAll('[id$="Modal"]')).reverse().find(m=>isModalVisible(m.id));
+if(!visible)return false;
+if(visible.id==='confirmDialogModal')confirmDialogCancel();
+else if(visible.id==='promptDialogModal')promptDialogCancel();
+else if(visible.id==='deleteVideoModal')closeDeleteVideoModal();
+else{
+const closers={collectionModal:closeCollectionModal,statsModal:closeStatsModal,reportModal:closeReportModal,likedModal:closeLikedModal,dislikedModal:closeDislikedModal,historyModal:closeHistoryModal,changelogModal:closeChangelogModal,backupRestoreModal:closeBackupRestoreModal,achievementsModal:closeAchievementsModal,helpModal:closeHelpModal,strategyModal:closeStrategyModal,renameModal:closeRenameModal,tagsModal:closeTagsModal,tagsPresetsModal:closeTagsPresetsModal,tagCollectionModal:closeTagCollectionModal,prefixPresetsModal:closePrefixPresetsModal,migrateModal:closeMigrateModal};
+if(closers[visible.id])closers[visible.id]();
+else{
+visible.style.display='none';
+visible.classList.add('hidden')}}
+return true}
+;
+
 const handleKeyPress=e=>{
-// Escape: 关闭新功能弹窗（全屏时按 Esc 只退出全屏，不关弹窗）
+// Escape: 关闭最上层弹窗（全屏时按 Esc 只退出全屏，不关弹窗）
 if(e.key==='Escape'){
 if(document.fullscreenElement)return;
-['deleteVideoModal','renameModal','prefixModal','prefixPresetsModal','migrateModal'].forEach(id=>{
-if(isModalVisible(id)){
-const m=$(id);
-m.style.display='none';
-m.classList.add('hidden')}
-});
+closeTopModal();
 return}
 // 输入框/下拉框中不拦截按键（避免影响打字与删除字符）
 const t=e.target;
@@ -2981,9 +3564,12 @@ categoryId&&videoId&&playSpecificVideo(categoryId,videoId)}
 )}
 ;
 
+let _userSeekPending=!1;
 const setupVideoSeekListener=()=>{
 const player=$('mainPlayer');
 player.addEventListener('seeked',()=>{
+if(!_userSeekPending)return;
+_userSeekPending=!1;
 if(S.currentVideo){
 const category=S.categories.find(c=>c.id===S.activeCategoryId);
 if(category){
@@ -3035,14 +3621,23 @@ m.classList.add('hidden')}
 ;
 
 // P14: 策略选择 — 持久化上次策略
-const selectStrategy=(strategy)=>{
+const selectStrategy=strategy=>runPersistedAction(async()=>{
+const previousStrategy=S.strategy;
+const previousCounter=S.strategyCounter;
+const previousLastStrategy=S.settings.lastStrategy;
 S.strategy=strategy;
 S.strategyCounter=0;
 S.settings.lastStrategy=strategy;
-persistAll().catch(()=>{
-});
+const committed=await commitPersistedChange({
+rollback:()=>{
+S.strategy=previousStrategy;
+S.strategyCounter=previousCounter;
+S.settings.lastStrategy=previousLastStrategy},
+refresh:()=>highlightStrategy(),
+failureMessage:'策略变更保存失败'});
+if(!committed)return;
 closeStrategyModal();
-showToast(`已切换策略：${strategy==='default'?'默认设置':strategy==='liked'?'点赞加权':strategy==='short'?'短片优先':'长片优先'}`,'success')}
+showToast(`已切换策略：${strategy==='default'?'默认设置':strategy==='liked'?'点赞加权':strategy==='short'?'短片优先':'长片优先'}`,'success')})
 ;
 const setupCustomControls=()=>{
 const p=$('mainPlayer'),sb=$('seekBar'),pp=$('playPauseBtn'),ct=$('currentTime'),dt=$('durationTime'),vb=$('volumeBtn'),vs=$('volumeSlider'),fb=$('fullscreenBtn'),skb=$('skipBackBtn'),skf=$('skipFwdBtn'),cc=$('customControls');
@@ -3121,6 +3716,7 @@ ct.textContent=fmt(sb.value/1000);
 showCc()}
 );
 sb.addEventListener('change',()=>{
+_userSeekPending=!0;
 p.currentTime=sb.value/1000;
 seekDragging=!1;
 cc.classList.remove('pinned');
@@ -3151,7 +3747,13 @@ document.fullscreenElement?document.exitFullscreen():p.parentElement.requestFull
 ;
 // 4.3：单击=暂停/播放（延迟 250ms 判定，避免双击误触发）；双击=仅全屏，不改变播放状态
 let _singleClickTimer=null;
-p.addEventListener('click',()=>{
+const isUpperVideoGesture=e=>{
+if(e.target!==p)return false;
+const rect=p.getBoundingClientRect();
+return e.clientY<rect.top+rect.height/2}
+;
+p.addEventListener('click',e=>{
+if(!isUpperVideoGesture(e))return;
 if(_singleClickTimer){
 clearTimeout(_singleClickTimer);
 _singleClickTimer=null;
@@ -3161,7 +3763,8 @@ _singleClickTimer=null;
 p.paused?p.play():p.pause()}
 ,250)}
 );
-p.addEventListener('dblclick',()=>{
+p.addEventListener('dblclick',e=>{
+if(!isUpperVideoGesture(e))return;
 if(_singleClickTimer){
 clearTimeout(_singleClickTimer);
 _singleClickTimer=null}
@@ -3195,6 +3798,8 @@ $('videoPathLabel').textContent=video.path;
 $('videoPathLabel').title=video.path}
 else{
 bar.classList.add('hidden')}
+updateSubtitleVisibility();
+if(!video)setSubtitleStatus('unloaded')
 }
 ;
 
@@ -3216,12 +3821,20 @@ base:name,ext:''}
 
 // ---------- 重命名 ----------
 // 4.7: 重命名 + 加前缀合并为一个弹窗（前缀可留空 / 新名称可留空 / 都填=前缀+新名）
+let _renameTarget=null;
+const lockedRenameVideo=()=>{
+if(!_renameTarget)return null;
+const category=S.categories.find(c=>c.id===_renameTarget.categoryId);
+const video=category&&(category.videos||[]).find(v=>v.id===_renameTarget.videoId&&videoKey(v)===_renameTarget.key);
+return video?{category,video}:null}
+;
 const showRenameModal=()=>{
 S._lastModalOpen=Date.now();
 const video=currentVideoInCategory();
 if(!video){
 showToast('当前没有可操作的视频','warning');
 return}
+_renameTarget={categoryId:S.activeCategoryId,videoId:video.id,key:videoKey(video)};
 const{
 base,ext}=splitFileName(video.name);
 $('renameOldName').textContent=`当前文件名: ${video.name}   (${video.path})`;
@@ -3249,8 +3862,9 @@ if(document.activeElement===input)input.select()}
 const updateRenamePreview=()=>{
 const preview=$('renamePreview');
 if(!preview)return;
-const video=currentVideoInCategory();
-if(!video)return;
+const target=lockedRenameVideo();
+if(!target)return;
+const video=target.video;
 const{
 ext}=splitFileName(video.name);
 const prefix=$('prefixInput').value.replace(/^\s+/,'');
@@ -3265,7 +3879,7 @@ preview.style.color=newName?'':'#ef4444'}
 ['renameInput','prefixInput'].forEach(id=>{
 $(id)&&($(id).addEventListener('input',updateRenamePreview));
 $(id)&&($(id).addEventListener('keydown',e=>{
-if(e.key==='Enter')applyRename()}
+if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229)applyRename()}
 ));
 $(id)&&($(id).addEventListener('mousedown',function(){
 if(document.activeElement!==this)this.focus()}
@@ -3274,6 +3888,7 @@ if(document.activeElement!==this)this.focus()}
 
 const closeRenameModal=()=>{
 blurActive();
+_renameTarget=null;
 const m=$('renameModal');
 m.style.display='none';
 m.classList.add('hidden')}
@@ -3281,9 +3896,11 @@ m.classList.add('hidden')}
 
 // 文件操作前：暂停并释放播放器对文件的占用（等句柄释放，避免"文件占用中"）
 const releasePlayerBeforeFileOp=async()=>{
+++_playToken;
+clearSubtitleTrack();
 const player=$('mainPlayer');
 const state={
-wasPlaying:!player.paused,keepTime:player.currentTime}
+wasPlaying:!player.paused,keepTime:player.currentTime,hadSrc:!!player.src}
 ;
 player.pause();
 player.removeAttribute('src');
@@ -3293,21 +3910,32 @@ return state}
 ;
 // 文件操作后：按原状态恢复播放（延续进度与播放/暂停状态）
 const resumePlayerAfterFileOp=async(filePath,state)=>{
+if(!state.hadSrc)return;
 const player=$('mainPlayer');
-player.src=await window.api.toFileUrl(filePath);
+const url=await window.api.toFileUrl(filePath);
+if(!url)return;
+player.src=url;
 player.currentTime=state.keepTime||0;
+if(S.currentVideo)loadSubtitleForVideo(S.currentVideo,_playToken);
 if(state.wasPlaying)player.play().catch(()=>{
 })}
 ;
 
-const applyRename=async()=>{
-const video=currentVideoInCategory();
-const category=S.categories.find(c=>c.id===S.activeCategoryId);
-if(!video||!category)return;
+const applyRename=()=>runPersistedAction(async()=>{
+const target=lockedRenameVideo();
+if(!target){
+showToast('重命名目标已变化，请重新打开命名窗口','warning');
+closeRenameModal();
+return}
+const {video}=target;
+const originalName=video.name;
+const originalPath=video.path;
+const originalLastPrefix=S.settings.lastPrefix;
 const prefix=$('prefixInput').value.replace(/^\s+/,'');
 const base=$('renameInput').value.trim();
 const{
 ext}=splitFileName(video.name);
+const oldKey=videoKey(video);
 let newName='';
 if(prefix&&base)newName=prefix+base+ext;
 else if(prefix)newName=prefix+video.name;
@@ -3321,21 +3949,56 @@ closeRenameModal();
 return}
 closeRenameModal();
 if(prefix)S.settings.lastPrefix=prefix;
+const affected=[];
+normalCategories().forEach(cat=>(cat.videos||[]).forEach(item=>{
+if(videoKey(item)===oldKey)affected.push({item,name:item.name,path:item.path,relPath:item.relPath})}
+));
+if(S.currentVideo&&videoKey(S.currentVideo)===oldKey&&!affected.some(snapshot=>snapshot.item===S.currentVideo)){
+affected.push({item:S.currentVideo,name:S.currentVideo.name,path:S.currentVideo.path,relPath:S.currentVideo.relPath})}
 // 先释放播放器占用，再执行改名；改完自动恢复播放并延续进度
 const playState=await releasePlayerBeforeFileOp();
-const res=await window.api.renameFile(video.path,newName);
+let res;
+try{res=await window.api.renameFile(originalPath,newName)}
+catch(err){res={ok:false,error:err.message}}
 if(!res.ok){
-await resumePlayerAfterFileOp(video.path,playState);
+S.settings.lastPrefix=originalLastPrefix;
+await resumePlayerAfterFileOp(originalPath,playState);
 showToast(res.error||'操作失败','error',5000);
 return}
-video.name=newName;
-video.path=res.newPath;
-if(video.relPath)video.relPath=video.relPath.replace(/[^/\\]+$/,newName);
-await saveCategoryToDB(category);
-await resumePlayerAfterFileOp(video.path,playState);
-$('videoTitle').textContent=video.name;
+affected.forEach(({item,relPath})=>{
+item.name=newName;
+item.path=res.newPath;
+if(relPath)item.relPath=relPath.replace(/[^/\\]+$/,newName)});
+syncTagCategories();
+const saved=await persistAllNow({showError:false});
+if(!saved.ok){
+let rollback;
+try{rollback=await window.api.renameFile(res.newPath,originalName)}
+catch(err){rollback={ok:false,error:err.message}}
+if(rollback&&rollback.ok){
+affected.forEach(snapshot=>{
+snapshot.item.name=snapshot.name;
+snapshot.item.path=snapshot.path;
+snapshot.item.relPath=snapshot.relPath}
+);
+S.settings.lastPrefix=originalLastPrefix;
+syncTagCategories();
+await resumePlayerAfterFileOp(originalPath,playState);
+$('videoTitle').textContent=originalName;
 updateVideoActionBar(video);
-showToast(`已重命名为 "${newName}"`,'success')}
+renderTabs();
+updateUI();
+showToast('重命名失败，已恢复原文件名: '+saved.error,'error',8000)}
+else{
+await resumePlayerAfterFileOp(res.newPath,playState);
+$('videoTitle').textContent=newName;
+updateVideoActionBar(video);
+showToast('文件已改名，但数据保存和自动回滚均失败，请暂停操作并检查数据目录: '+((rollback&&rollback.error)||saved.error),'error',12000)}
+return}
+await resumePlayerAfterFileOp(res.newPath,playState);
+$('videoTitle').textContent=newName;
+updateVideoActionBar(video);
+showToast(`已重命名为 "${newName}"`,'success')})
 ;
 
 const renderPrefixPresetOptions=()=>{
@@ -3387,26 +4050,43 @@ span.title=p;
 const renameBtn=document.createElement('button');
 renameBtn.className='px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition-colors';
 renameBtn.textContent='改名';
-renameBtn.onclick=async()=>{
+renameBtn.dataset.persistAction='true';
+renameBtn.onclick=()=>runPersistedAction(async()=>{
 const next=await showPromptDialog('输入新的预设内容：',p);
 if(next&&next.trim()){
+const previous=[...S.settings.prefixPresets];
 S.settings.prefixPresets[i]=next.trim();
-persistAll();
+const committed=await commitPersistedChange({
+rollback:()=>S.settings.prefixPresets=previous,
+refresh:()=>{
+renderPrefixPresetList();
+renderPrefixPresetOptions()},
+failureMessage:'预设更新保存失败'});
+if(!committed)return;
 renderPrefixPresetList();
 renderPrefixPresetOptions();
 showToast('预设已更新','success')}
-}
+})
 ;
 const delBtn=document.createElement('button');
 delBtn.className='px-2 py-1 text-xs bg-red-900/40 hover:bg-red-900/70 rounded text-red-300 transition-colors';
 delBtn.textContent='删除';
-delBtn.onclick=async()=>{
+delBtn.dataset.persistAction='true';
+delBtn.onclick=()=>runPersistedAction(async()=>{
 if(!(await showConfirmDialog(`删除预设 "${p}"？`)))return;
+const previous=[...S.settings.prefixPresets];
 S.settings.prefixPresets.splice(i,1);
-persistAll();
+const committed=await commitPersistedChange({
+rollback:()=>S.settings.prefixPresets=previous,
+refresh:()=>{
+renderPrefixPresetList();
+renderPrefixPresetOptions()},
+failureMessage:'预设删除保存失败'});
+if(!committed)return;
 renderPrefixPresetList();
 renderPrefixPresetOptions();
 showToast('预设已删除','success')}
+)
 ;
 row.appendChild(span);
 row.appendChild(renameBtn);
@@ -3416,7 +4096,7 @@ list.appendChild(row)}
 }
 ;
 
-const addPrefixPreset=()=>{
+const addPrefixPreset=()=>runPersistedAction(async()=>{
 const input=$('prefixNewPreset');
 const val=input.value.replace(/^\s+/,'');
 if(!val){
@@ -3426,11 +4106,17 @@ if(S.settings.prefixPresets.includes(val)){
 showToast('该预设已存在','warning');
 return}
 S.settings.prefixPresets.push(val);
+const committed=await commitPersistedChange({
+rollback:()=>S.settings.prefixPresets.pop(),
+refresh:()=>{
+renderPrefixPresetList();
+renderPrefixPresetOptions()},
+failureMessage:'预设添加保存失败'});
+if(!committed)return;
 input.value='';
-persistAll();
 renderPrefixPresetList();
 renderPrefixPresetOptions();
-showToast('预设已添加','success')}
+showToast('预设已添加','success')})
 ;
 
 const closePrefixPresetsModal=()=>{
@@ -3443,12 +4129,16 @@ m.classList.add('hidden')}
 // ---------- 删除（系统回收站） ----------
 // 弹窗打开时锁定目标视频 id：期间视频自动切换也不会删错对象
 let _deleteTargetId=null;
+let _deleteTargetCategoryId=null;
+let _deleteTargetKey=null;
 const confirmDeleteCurrentVideo=()=>{
 const video=currentVideoInCategory();
 if(!video){
 showToast('当前没有可操作的视频','warning');
 return}
 _deleteTargetId=video.id;
+_deleteTargetCategoryId=S.activeCategoryId;
+_deleteTargetKey=videoKey(video);
 $('deleteVideoName').textContent=video.name;
 $('deleteVideoPath').textContent=video.path;
 S._lastModalOpen=Date.now();
@@ -3460,44 +4150,47 @@ m.classList.remove('hidden')}
 const closeDeleteVideoModal=()=>{
 blurActive();
 _deleteTargetId=null;
+_deleteTargetCategoryId=null;
+_deleteTargetKey=null;
 const m=$('deleteVideoModal');
 m.style.display='none';
 m.classList.add('hidden')}
 ;
 
 const finishDelete=async(video,category,msg)=>{
-const idx=category.videos.findIndex(v=>v.id===video.id);
-if(idx!==-1)category.videos.splice(idx,1);
-category.currentPool=category.videos.filter(v=>!v.watched);
+const targetKey=videoKey(video);
+normalCategories().forEach(cat=>{
+cat.videos=(cat.videos||[]).filter(v=>videoKey(v)!==targetKey);
+cat.videoMetas=cat.videos;
+cat.currentPool=buildCurrentPool(cat.videos)});
 // 5.0: 删除视频后同步标签合集（动态聚合保持一致）
 syncTagCategories();
-await saveCategoryToDB(category);
-S.currentVideo=null;
-updateVideoActionBar(null);
+const saved=await persistAllNow({showError:false});
+clearPlayer();
 renderTabs();
 updateUI();
+if(!saved.ok){
+showToast(`"${video.name}" ${msg}，但列表保存失败；重启后可能暂时重新出现，请检查数据目录后更新合集: ${saved.error}`,'error',12000);
+return}
 showToast(`"${video.name}" ${msg}`,'success');
-if(category.currentPool.length>0){
+const active=S.categories.find(c=>c.id===S.activeCategoryId);
+if(active&&active.currentPool.length>0){
 setTimeout(()=>drawVideo(),600)}
 }
 ;
 
-const doDeleteCurrentVideo=async()=>{
+const doDeleteCurrentVideo=()=>runPersistedAction(async()=>{
 // 以弹窗打开时锁定的目标为准（弹窗期间视频切换不会删错）
-const category=S.categories.find(c=>c.id===S.activeCategoryId);
-const video=category&&_deleteTargetId?category.videos.find(v=>v.id===_deleteTargetId):null;
+const category=S.categories.find(c=>c.id===(_deleteTargetCategoryId||S.activeCategoryId));
+const video=category&&_deleteTargetId?category.videos.find(v=>v.id===_deleteTargetId&&(!_deleteTargetKey||videoKey(v)===_deleteTargetKey)):null;
 if(!video||!category){
 closeDeleteVideoModal();
 return}
 closeDeleteVideoModal();
 // 先停止播放器并释放文件句柄，再移入回收站（避免占用导致 "Operation was aborted"）
-const player=$('mainPlayer');
-player.pause();
-player.removeAttribute('src');
-player.load();
+const playState=await releasePlayerBeforeFileOp();
 $('videoContainer').classList.add('hidden');
 $('emptyState').classList.remove('hidden');
-await new Promise(r=>setTimeout(r,350));
 const res=await window.api.trashFile(video.path);
 if(!res.ok){
 const perm=await showConfirmDialog(`无法将文件移入系统回收站：${res.error||'未知错误'}\n\n是否改为永久删除？此操作不可恢复！`);
@@ -3508,11 +4201,14 @@ await finishDelete(video,category,'已永久删除');
 return}
 showToast('删除失败: '+r2.error,'error',5000)}
 else showToast('已取消删除，文件未变动','info');
-S.currentVideo=null;
-updateVideoActionBar(null);
+await resumePlayerAfterFileOp(video.path,playState);
+$('emptyState').classList.add('hidden');
+$('videoContainer').classList.remove('hidden');
+S.currentVideo=video;
+updateVideoActionBar(video);
 return}
 await finishDelete(video,category,'已移入系统回收站')
-}
+})
 ;
 
 // ---------- 打开所在文件夹 ----------
@@ -3583,7 +4279,7 @@ m.classList.add('hidden')}
 const promptDialogOK=()=>resolvePromptDialog($('promptDialogInput').value);
 const promptDialogCancel=()=>resolvePromptDialog(null);
 $('promptDialogInput')&&($('promptDialogInput').addEventListener('keydown',e=>{
-if(e.key==='Enter')promptDialogOK()}
+if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229)promptDialogOK()}
 ));
 // ---------- 加标签（仅存存档，不改文件名） ----------
 const showTagsModal=()=>{
@@ -3613,27 +4309,35 @@ const has=(video.tags||[]).includes(tag);
 const btn=document.createElement('button');
 btn.className=`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${has?'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30':'bg-gray-700/40 text-gray-300 border-gray-600/60 hover:bg-gray-700'}`;
 btn.textContent=has?`${tag} ✓`:`${tag}`;
-btn.onclick=()=>{
-toggleVideoTag(video,tag);
-renderTagsList(video)};
+btn.dataset.persistAction='true';
+btn.onclick=()=>toggleVideoTag(video,tag);
 list.appendChild(btn)}
 )
 }
 ;
 
-const toggleVideoTag=(video,tag)=>{
+const toggleVideoTag=(video,tag)=>runPersistedAction(async()=>{
 video.tags||(video.tags=[]);
+const previousTags=[...video.tags];
 const idx=video.tags.indexOf(tag);
+const added=idx===-1;
 if(idx===-1){
-video.tags.push(tag);
-showToast(`已添加标签 "${tag}"`,'success')}
-else{
-video.tags.splice(idx,1);
-showToast(`已取消标签 "${tag}"`,'info')}
-saveCategoryToDB(S.categories.find(c=>c.id===S.activeCategoryId));
+video.tags.push(tag)}
+else video.tags.splice(idx,1);
+const committed=await commitPersistedChange({
+rollback:()=>video.tags=previousTags,
+refresh:()=>{
 syncTagCategories();
+renderTagsList(video);
 renderTabs();
-updateUI()}
+updateUI()},
+failureMessage:'视频标签保存失败'});
+if(!committed)return;
+syncTagCategories();
+renderTagsList(video);
+renderTabs();
+updateUI();
+showToast(added?`已添加标签 "${tag}"`:`已取消标签 "${tag}"`,added?'success':'info')})
 ;
 
 const closeTagsModal=()=>{
@@ -3641,6 +4345,25 @@ blurActive();
 const m=$('tagsModal');
 m.style.display='none';
 m.classList.add('hidden')}
+;
+
+const refreshTagPresetConsumers=()=>{
+const current=currentVideoInCategory();
+if(isModalVisible('tagsModal')){
+if(current)renderTagsList(current);
+else closeTagsModal()}
+if(isModalVisible('tagCollectionModal'))renderTagCollectionTags()}
+;
+const captureTagManagementState=()=>({
+settingsTags:[...(S.settings.tags||[])],
+videoTags:normalCategories().flatMap(category=>(category.videos||[]).map(video=>({video,tags:[...(video.tags||[])]}))),
+categoryTags:S.categories.filter(category=>category.type==='tags').map(category=>({category,tags:[...(category.tags||[])]}))}
+);
+const restoreTagManagementState=snapshot=>{
+S.settings.tags=snapshot.settingsTags;
+snapshot.videoTags.forEach(({video,tags})=>video.tags=tags);
+snapshot.categoryTags.forEach(({category,tags})=>category.tags=tags);
+syncTagCategories()}
 ;
 
 // ---------- 标签预设管理 ----------
@@ -3670,25 +4393,65 @@ span.title=t;
 const renameBtn=document.createElement('button');
 renameBtn.className='px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-200 transition-colors';
 renameBtn.textContent='改名';
-renameBtn.onclick=async()=>{
+renameBtn.dataset.persistAction='true';
+renameBtn.onclick=()=>runPersistedAction(async()=>{
 const next=await showPromptDialog('输入新的标签名：',t);
 if(next&&next.trim()){
-S.settings.tags[i]=next.trim();
-persistAll();
+const value=next.trim();
+if(value!==t&&S.settings.tags.includes(value)){
+showToast('该标签已存在','warning');
+return}
+const snapshot=captureTagManagementState();
+S.settings.tags[i]=value;
+normalCategories().forEach(cat=>(cat.videos||[]).forEach(v=>{
+v.tags=[...new Set((v.tags||[]).map(tag=>tag===t?value:tag))]}));
+S.categories.filter(cat=>cat.type==='tags').forEach(cat=>{
+cat.tags=[...new Set((cat.tags||[]).map(tag=>tag===t?value:tag))]});
+const committed=await commitPersistedChange({
+rollback:()=>restoreTagManagementState(snapshot),
+refresh:()=>{
 renderTagsPresetList();
+refreshTagPresetConsumers();
+renderTabs();
+updateUI()},
+failureMessage:'标签更新保存失败'});
+if(!committed)return;
+syncTagCategories();
+renderTagsPresetList();
+refreshTagPresetConsumers();
+renderTabs();
+updateUI();
 showToast('标签已更新','success')}
-}
+})
 ;
 const delBtn=document.createElement('button');
 delBtn.className='px-2 py-1 text-xs bg-red-900/40 hover:bg-red-900/70 rounded text-red-300 transition-colors';
 delBtn.textContent='删除';
-delBtn.onclick=async()=>{
+delBtn.dataset.persistAction='true';
+delBtn.onclick=()=>runPersistedAction(async()=>{
 if(!(await showConfirmDialog(`删除标签 "${t}"？已有该标签的视频将失去此标签。`)))return;
+const snapshot=captureTagManagementState();
 S.settings.tags.splice(i,1);
-persistAll();
+normalCategories().forEach(cat=>(cat.videos||[]).forEach(v=>{
+v.tags=(v.tags||[]).filter(tag=>tag!==t)}));
+S.categories.filter(cat=>cat.type==='tags').forEach(cat=>{
+cat.tags=(cat.tags||[]).filter(tag=>tag!==t)});
+const committed=await commitPersistedChange({
+rollback:()=>restoreTagManagementState(snapshot),
+refresh:()=>{
+renderTagsPresetList();
+refreshTagPresetConsumers();
+renderTabs();
+updateUI()},
+failureMessage:'标签删除保存失败'});
+if(!committed)return;
 syncTagCategories();
 renderTagsPresetList();
+refreshTagPresetConsumers();
+renderTabs();
+updateUI();
 showToast('标签已删除','success')}
+)
 ;
 row.appendChild(span);
 row.appendChild(renameBtn);
@@ -3698,7 +4461,7 @@ list.appendChild(row)}
 }
 ;
 
-const addTagsPreset=()=>{
+const addTagsPreset=()=>runPersistedAction(async()=>{
 const input=$('tagsNewPreset');
 const val=input.value.trim();
 if(!val){
@@ -3709,10 +4472,17 @@ showToast('该标签已存在','warning');
 return}
 S.settings.tags||(S.settings.tags=[]);
 S.settings.tags.push(val);
-input.value='';
-persistAll();
+const committed=await commitPersistedChange({
+rollback:()=>S.settings.tags.pop(),
+refresh:()=>{
 renderTagsPresetList();
-showToast('标签已添加','success')}
+refreshTagPresetConsumers()},
+failureMessage:'标签添加保存失败'});
+if(!committed)return;
+input.value='';
+renderTagsPresetList();
+refreshTagPresetConsumers();
+showToast('标签已添加','success')})
 ;
 
 const closeTagsPresetsModal=()=>{
@@ -3774,20 +4544,23 @@ const pool=[],seen=new Set();
 S.categories.forEach(other=>{
 if(other===cat||other.type==='tags')return;
 (other.videos||[]).forEach(v=>{
-if(seen.has(v.id))return;
+const key=videoKey(v);
+if(seen.has(key))return;
 const vt=v.tags||[];
 if(tags.some(t=>vt.includes(t))){
-seen.add(v.id);
+seen.add(key);
 pool.push(v)}
 });
 });
 cat.videos=pool;
-cat.currentPool=pool.filter(v=>!v.watched);
+cat.currentPool=buildCurrentPool(pool);
 changed=true});
+const active=S.categories.find(cat=>cat.id===S.activeCategoryId);
+if(active&&active.type==='tags'&&S.currentVideo&&!active.videos.some(video=>videoKey(video)===videoKey(S.currentVideo)))clearPlayer();
 return changed}
 ;
 
-const createTagCollection=()=>{
+const createTagCollection=()=>runPersistedAction(async()=>{
 const picked=Array.from(document.querySelectorAll('#tagCollectionTags .tag-picked')).map(b=>b.dataset.tag);
 if(picked.length===0){
 showToast('请至少勾选一个标签','warning');
@@ -3802,28 +4575,32 @@ const maxOrder=S.categories.reduce((max,cat)=>Math.max(max,cat.order||0),-1);
 const newCategory={
 id:'tag'+Date.now().toString(),name:name,type:'tags',tags:picked,roots:[],videos:[],currentPool:[],order:maxOrder+1,persistent:!0,permissionRestored:!0}
 ;
-syncTagCategories();
-// 统计新合集将包含的视频数
-let count=0;
-S.categories.forEach(other=>{
-if(other.type==='tags')return;
-(other.videos||[]).forEach(v=>{
-const vt=v.tags||[];
-if(picked.some(t=>vt.includes(t)))count++});
-});
+const previousActiveId=S.activeCategoryId;
+const previousAchievements=clonePersistedValue(S.achievements);
 S.categories.push(newCategory);
-S.activeCategoryId=newCategory.id;
 syncTagCategories();
+const count=newCategory.videos.length;
+S.activeCategoryId=newCategory.id;
 S.achievements.stats.totalCollections++;
+const committed=await commitPersistedChange({
+rollback:()=>{
+S.categories=S.categories.filter(category=>category!==newCategory);
+S.activeCategoryId=previousActiveId;
+S.achievements=previousAchievements;
+syncTagCategories()},
+refresh:()=>{
+renderTabs();
+updateUI();
+updateConnectionStatus()},
+failureMessage:'标签合集创建失败'});
+if(!committed)return;
 checkAchievements();
-saveAchievementsToDB();
-saveCategoryToDB(newCategory);
 closeTagCollectionModal();
 updateConnectionStatus();
 renderTabs();
 updateUI();
 switchCategory(newCategory.id);
-showToast(`标签合集 "${name}" 已创建，包含 ${count} 个视频`,'success')}
+showToast(`标签合集 "${name}" 已创建，包含 ${count} 个视频`,'success')})
 ;
 // ---------- 存档迁移（新版本自动发现旧版本数据） ----------
 let _migrationOptions=[];
@@ -3837,11 +4614,11 @@ let html='';
 opts.forEach((o,i)=>{
 const time=o.backupTime?(' 备份时间 '+o.backupTime.slice(0,16).replace('T',' ')):'';
 html+=`<label class="flex items-center gap-3 bg-gray-900/50 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-900">
-<input type="radio" name="migratePick" value="${i}" ${i===0?'checked':''} class="accent-indigo-500">
-<span class="flex-1 min-w-0">
-<span class="block text-sm text-gray-200 truncate">${o.name}</span>
-<span class="block text-xs text-gray-500">${o.categoryCount} 个合集 · 数据版本 ${o.version}${time}</span>
-</span>
+ <input type="radio" name="migratePick" value="${i}" ${i===0?'checked':''} class="accent-indigo-500">
+ <span class="flex-1 min-w-0">
+ <span class="block text-sm text-gray-200 truncate">${escapeHtml(o.name)}</span>
+ <span class="block text-xs text-gray-500">${Number(o.categoryCount)||0} 个合集 · 数据版本 ${escapeHtml(o.version)}${escapeHtml(time)}</span>
+ </span>
 </label>`});
 list.innerHTML=html;
 S._lastModalOpen=Date.now();
@@ -3855,7 +4632,7 @@ const m=$('migrateModal');
 m.style.display='none';
 m.classList.add('hidden')}
 ;
-const doImportMigration=async()=>{
+const doImportMigration=()=>runPersistedAction(async()=>{
 const picked=document.querySelector('input[name="migratePick"]:checked');
 if(!picked){
 showToast('请先选择一个存档','warning');
@@ -3873,7 +4650,8 @@ await loadCategories();
 updateConnectionStatus();
 renderTabs();
 updateUI();
-showToast(`已导入 "${opt.name}" 的存档，共 ${S.categories.length} 个合集`,'success',6000)}
+const retained=res.backupPath?`；导入前资料已保留在 ${res.backupPath}`:'';
+showToast(`已导入 "${opt.name}" 的存档，共 ${S.categories.length} 个合集${retained}`,'success',res.backupPath?12000:6000)})
 ;
 
 // ================= 启动流程 =================
@@ -3894,14 +4672,29 @@ return false}
 ;
 
 document.addEventListener('DOMContentLoaded',async()=>{
+try{
+markPersistedActionControls();
+window.api.reportBootStage('正在读取数据',25);
 await initDB();
+window.api.reportBootStage('正在整理视频库',35);
 await loadCategories();
+window.api.reportBootStage('正在生成界面',95);
 updateConnectionStatus();
 renderTabs();
 updateUI();
 updateVideoActionBar(null);
 // 未找到存档时：检测旧版本数据并提示迁移（区分"首次运行"与"数据意外丢失"）
 await checkMigration();
+window.api.reportBootDone()}
+catch(err){
+console.error('启动加载失败',err);
+const status=$('connectionStatus');
+if(status){
+status.textContent='数据加载失败';
+status.className='flex items-center space-x-2 px-3 py-2 rounded-lg bg-red-900/30 border border-red-700/60 text-sm text-red-300'}
+const message=err&&err.message?err.message:'未知错误';
+showToast('数据加载失败，请检查数据目录权限后重新启动：'+message,'error',12000);
+window.api.reportBootDone(message)}
 document.addEventListener('keydown',handleKeyPress);
 window.api.onShortcut('draw',handleShortcutDraw);
 window.api.onShortcut('delete',handleShortcutDelete);
@@ -3940,11 +4733,9 @@ const item=items[i];
 if(item.kind==='file'){
 promises.push((async()=>{
 const file=item.getAsFile();
-const p=file?window.api.getPathForFile(file):null;
+const p=file?await window.api.registerDroppedFolder(file):null;
 if(p){
-const isDir=await window.api.isDirectory(p);
-if(isDir)paths.push(p);
-else console.warn('拖拽项不是文件夹:',p)}
+paths.push(p)}
 else failedCount++}
 )().catch(err=>{
 console.warn('无法获取文件夹路径:',err);

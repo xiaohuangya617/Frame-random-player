@@ -5,42 +5,57 @@ const path = require('path');
 const SUPPORTED_EXTS = new Set([
   'mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi', 'flv', 'm4v', 'wmv', '3gp', 'ts', 'm2ts', 'mts'
 ]);
+const SCAN_CONCURRENCY = 8;
 
 const INVALID_CHARS = /[<>:"/\\|?*\u0000-\u001f]/;
 const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
 
 /**
  * 递归扫描文件夹中的视频文件（异步，避免大目录阻塞主进程）
- * @returns Promise<[{name, path, relPath, size}]>
+ * @returns Promise<{ok:boolean, files:Array, errors:Array}>
  */
-async function scanFolder(root, out = [], relPrefix = '') {
-  let entries;
-  try {
-    entries = await fs.promises.readdir(root, { withFileTypes: true });
-  } catch {
-    return out; // 无权限/不存在的目录跳过
-  }
-  const subDirs = [];
-  for (const ent of entries) {
-    const full = path.join(root, ent.name);
-    if (ent.isDirectory()) {
-      subDirs.push({ full, rel: relPrefix ? relPrefix + '/' + ent.name : ent.name });
-    } else if (ent.isFile()) {
-      const ext = path.extname(ent.name).slice(1).toLowerCase();
-      if (SUPPORTED_EXTS.has(ext)) {
-        let size = 0;
-        try { size = (await fs.promises.stat(full)).size; } catch { /* 忽略 */ }
-        out.push({
-          name: ent.name,
-          path: full,
-          relPath: relPrefix ? relPrefix + '/' + ent.name : ent.name,
-          size
-        });
+async function scanFolder(root) {
+  const files = [];
+  const errors = [];
+  const queue = [{ current: root, relPrefix: '' }];
+
+  while (queue.length > 0) {
+    const batch = queue.splice(0, SCAN_CONCURRENCY);
+    const discovered = await Promise.all(batch.map(async ({ current, relPrefix }) => {
+      let entries;
+      try {
+        entries = await fs.promises.readdir(current, { withFileTypes: true });
+      } catch (err) {
+        errors.push({ path: current, error: err.code || err.message });
+        return [];
       }
-    }
+      const subDirs = [];
+      for (const ent of entries) {
+        const full = path.join(current, ent.name);
+        if (ent.isDirectory()) {
+          subDirs.push({ current: full, relPrefix: relPrefix ? relPrefix + '/' + ent.name : ent.name });
+        } else if (ent.isFile()) {
+          const ext = path.extname(ent.name).slice(1).toLowerCase();
+          if (SUPPORTED_EXTS.has(ext)) {
+            try {
+              const size = (await fs.promises.stat(full)).size;
+              files.push({
+                name: ent.name,
+                path: full,
+                relPath: relPrefix ? relPrefix + '/' + ent.name : ent.name,
+                size
+              });
+            } catch (err) {
+              errors.push({ path: full, error: err.code || err.message });
+            }
+          }
+        }
+      }
+      return subDirs;
+    }));
+    discovered.forEach(subDirs => queue.push(...subDirs));
   }
-  await Promise.all(subDirs.map(d => scanFolder(d.full, out, d.rel)));
-  return out;
+  return { ok: errors.length === 0, files, errors };
 }
 
 /**
@@ -69,10 +84,23 @@ function renameFile(oldPath, newName) {
 
   const target = path.join(path.dirname(oldPath), name);
   if (path.resolve(target) === path.resolve(oldPath)) return { ok: false, error: '文件名未变化' };
-  if (fs.existsSync(target)) return { ok: false, error: '同目录下已存在同名文件' };
+  if (!fs.existsSync(oldPath)) return { ok: false, error: '原文件不存在，可能已被移动或删除' };
+  const caseOnly = path.resolve(target).toLowerCase() === path.resolve(oldPath).toLowerCase();
+  if (fs.existsSync(target) && !caseOnly) return { ok: false, error: '同目录下已存在同名文件' };
 
   try {
-    fs.renameSync(oldPath, target);
+    if (caseOnly) {
+      const temp = path.join(path.dirname(oldPath), `.__randomplayer_rename_${process.pid}_${Date.now()}${oldExt}`);
+      fs.renameSync(oldPath, temp);
+      try {
+        fs.renameSync(temp, target);
+      } catch (err) {
+        try { fs.renameSync(temp, oldPath); } catch { /* 尽力回滚 */ }
+        throw err;
+      }
+    } else {
+      fs.renameSync(oldPath, target);
+    }
     return { ok: true, newPath: target };
   } catch (err) {
     const reason = (err.code === 'EPERM' || err.code === 'EACCES' || err.code === 'EBUSY')
@@ -82,4 +110,4 @@ function renameFile(oldPath, newName) {
   }
 }
 
-module.exports = { scanFolder, renameFile, SUPPORTED_EXTS };
+module.exports = { scanFolder, renameFile, SUPPORTED_EXTS, SCAN_CONCURRENCY };

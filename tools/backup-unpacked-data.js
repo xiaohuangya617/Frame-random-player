@@ -18,6 +18,11 @@ function copyDirSync(src, dst) {
 const distDir = path.join(__dirname, '..', 'dist');
 const unpackedData = path.join(distDir, 'win-unpacked', 'data');
 
+if (!fs.existsSync(distDir)) {
+  console.log('[备份] dist 不存在，首次打包无需保护旧产物');
+  process.exit(0);
+}
+
 // 兜底：win-unpacked/data 缺失但从最近备份恢复
 if (!fs.existsSync(path.join(unpackedData, 'data.json'))) {
   const backups = fs.readdirSync(distDir)

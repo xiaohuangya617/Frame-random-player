@@ -4,6 +4,12 @@
 const fs = require('fs');
 const path = require('path');
 
+for (const stream of [process.stdout, process.stderr]) {
+  if (stream && stream.on) stream.on('error', err => {
+    if (err.code !== 'EPIPE') process.exitCode = 1;
+  });
+}
+
 module.exports = async ({ app, win, DATA_DIR }) => {
   const results = { phase: process.env.RANDOMPLAYER_E2E_PHASE || '1', steps: [] };
   const shotDir = path.join(process.cwd(), 'test-shots');
@@ -42,6 +48,13 @@ module.exports = async ({ app, win, DATA_DIR }) => {
       await sleep(200);
     }
     await sleep(1000);
+
+    const startupBounds = win.getBounds();
+    if (startupBounds.width === 1600 && startupBounds.height === 900) {
+      pass('主窗口忽略旧尺寸并按默认大小启动', JSON.stringify(startupBounds));
+    } else {
+      fail('主窗口忽略旧尺寸并按默认大小启动', JSON.stringify(startupBounds));
+    }
 
     // ============ 阶段2：重启持久化验证 ============
     if (process.env.RANDOMPLAYER_E2E_PHASE === '2') {
@@ -88,7 +101,7 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     const sampleSize = fs.statSync(sample).size;
 
     // 构造"旧版本"目录（模拟用户旧版文件夹，与数据目录同级：数据目录父目录下的兄弟目录）
-    const oldDir = path.join(process.cwd(), '随机播放器旧版测试');
+    const oldDir = path.join(path.dirname(path.dirname(DATA_DIR)), '随机播放器旧版测试');
     fs.rmSync(oldDir, { recursive: true, force: true });
     fs.mkdirSync(path.join(oldDir, 'data'), { recursive: true });
     fs.writeFileSync(path.join(oldDir, 'data', 'data.json'), JSON.stringify({
@@ -135,15 +148,17 @@ module.exports = async ({ app, win, DATA_DIR }) => {
 
     await shot('01-initial.png');
     // 创建合集
+    process.env.RANDOMPLAYER_E2E_FOLDER = folder;
     const created = await js(`(async()=>{
       openCollectionCreator();
-      S.tempCollectionPaths=['${jstr(folder)}'];
+      S.tempCollectionPaths=[await window.api.pickFolder()];
       updateSelectedDirsList();
       $('collectionNameInput').value='测试合集';
       await createCollection();
       const cat=S.categories[0];
       return {n:S.categories.length,v:cat?cat.videos.length:0,names:cat?cat.videos.map(x=>x.name):[],ready:cat?cat.permissionRestored:false};
     })()`);
+    delete process.env.RANDOMPLAYER_E2E_FOLDER;
     if (created.n === 1 && created.v >= 3 && created.ready) pass('创建合集+扫描', JSON.stringify(created.names));
     else fail('创建合集+扫描', JSON.stringify(created));
     await shot('02-collection.png');
@@ -152,12 +167,26 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     const headerTest = await js(`(()=>{
       const btns=Array.from(document.querySelectorAll('header button'));
       const texts=btns.map(b=>b.textContent.trim());
-      const unified=btns.every(b=>b.className.includes('border-gray-600/60')&&b.className.includes('text-gray-300'));
-      return {texts,unified};
+      const normal=btns.filter(b=>b.id!=='resetAllBtn');
+      const unified=normal.every(b=>b.className.includes('border-gray-600/60')&&b.className.includes('text-gray-300'));
+      const reset=$('resetAllBtn');
+      const danger=reset.className.includes('text-red-300')&&reset.className.includes('bg-red-900/30');
+      $('apiSettingsBtn').click();
+      const apiToast=$('toastContainer').textContent.includes('接口配置暂未实装');
+      showHelpModal();
+      const guideTitle=$('helpModal').querySelector('h3').textContent.trim();
+      closeHelpModal();
+      const actions=$('headerActions');
+      return {texts,unified,danger,apiToast,guideTitle,fits:actions.scrollWidth<=actions.clientWidth};
     })()`);
-    const expected=['⚙️ 策略变更','📋 浏览历史','👍 点赞清单','📊 排行统计','❓ 使用说明','🏆 成就','💾📂 备份/恢复','初始化'];
-    if (headerTest.unified && JSON.stringify(headerTest.texts) === JSON.stringify(expected)) pass('按钮顺序+统一样式', JSON.stringify(headerTest.texts));
-    else fail('按钮顺序+统一样式', JSON.stringify(headerTest));
+    const expected=['🔌 接口配置','⚙️ 策略变更','📋 浏览历史','👍 喜爱','📊 排行','💾📂 备份/恢复','❓ 指南','🏆 成就','🔄 初始化'];
+    if (JSON.stringify(headerTest.texts) === JSON.stringify(expected) && headerTest.fits) pass('顶部按钮顺序且默认窗口完整露出', JSON.stringify(headerTest.texts));
+    else fail('顶部按钮顺序且默认窗口完整露出', JSON.stringify(headerTest));
+    if (headerTest.unified && headerTest.danger) pass('顶部普通按钮统一且初始化为红色危险样式', JSON.stringify({ unified: headerTest.unified, danger: headerTest.danger }));
+    else fail('顶部普通按钮统一且初始化为红色危险样式', JSON.stringify(headerTest));
+    const expectedGuideTitle = `随机播放器 ${app.getVersion().replace(/\.0$/, '')} 指南`;
+    if (headerTest.apiToast && headerTest.guideTitle === expectedGuideTitle) pass('接口配置占位提示和指南标题', headerTest.guideTitle);
+    else fail('接口配置占位提示和指南标题', JSON.stringify(headerTest));
 
     // 侧边栏按钮：补充/更新/重置顺序与命名（4.6/4.7）
     const asideTest = await js(`(()=>{
@@ -180,6 +209,20 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     })()`);
     if (!played.paused && played.duration > 0 && played.barShown) pass('视频播放+操作栏显示', `t=${played.time.toFixed(1)}/${played.duration.toFixed(1)}`);
     else fail('视频播放+操作栏显示', JSON.stringify(played));
+    const actionBarTest = await js(`(()=>{
+      const buttons=Array.from($('videoActionBar').querySelectorAll('button'));
+      const texts=buttons.map(button=>button.textContent.trim());
+      $('subtitleBtn').click();
+      const toastBox=$('toastContainer').getBoundingClientRect();
+      const barBox=$('videoActionBar').getBoundingClientRect();
+      return {texts,subtitleImplemented:!$('subtitleBtn').title.includes('暂未实装'),deleteLast:buttons.at(-1).id==='deleteVideoBtn',toastClearOfActions:toastBox.bottom<=barBox.top};
+    })()`);
+    const expectedActions=['🎬 字幕','📁 字幕目录','✏️ 命名','🏷️ 标签','📂 路径','🗑️ 删除'];
+    if (JSON.stringify(actionBarTest.texts) === JSON.stringify(expectedActions) && actionBarTest.subtitleImplemented && actionBarTest.deleteLast && actionBarTest.toastClearOfActions) {
+      pass('操作栏顺序和字幕入口', JSON.stringify(actionBarTest.texts));
+    } else {
+      fail('操作栏顺序和字幕入口', JSON.stringify(actionBarTest));
+    }
     await shot('03-playing.png');
 
     // 重命名
@@ -236,7 +279,7 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     // 预设添加
     const presetTest = await js(`(async()=>{
       $('prefixNewPreset').value='【动画】 ';
-      addPrefixPreset();
+      await addPrefixPreset();
       return {has:S.settings.prefixPresets.includes('【动画】 '),presets:S.settings.prefixPresets};
     })()`);
     if (presetTest.has) pass('前缀预设添加', JSON.stringify(presetTest.presets));
@@ -249,13 +292,13 @@ module.exports = async ({ app, win, DATA_DIR }) => {
       await new Promise(r=>setTimeout(r,150));
       const defActive=document.querySelector('#strategyModal .strategy-option[data-strategy="default"]').classList.contains('active');
       closeStrategyModal();
-      selectStrategy('liked');
+      await selectStrategy('liked');
       showStrategyModal();
       await new Promise(r=>setTimeout(r,150));
       const likedActive=document.querySelector('#strategyModal .strategy-option[data-strategy="liked"]').classList.contains('active');
       const defActive2=document.querySelector('#strategyModal .strategy-option[data-strategy="default"]').classList.contains('active');
       closeStrategyModal();
-      selectStrategy('default');
+      await selectStrategy('default');
       return {defActive,likedActive,defActive2};
     })()`);
     if (strategyTest.defActive && strategyTest.likedActive && !strategyTest.defActive2) pass('策略选中高亮', JSON.stringify(strategyTest));
@@ -284,7 +327,8 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     process.env.RANDOMPLAYER_E2E_BACKUP = '';
 
     // Ctrl+D 随机抽取快捷键（主进程输入通道；焦点在视频元素上时也必须生效）
-    const hotkeyBeforePool = await js(`$('mainPlayer').focus();S.categories[0].currentPool.length`);
+    const hotkeyBeforePool = await js(`clearPlayer();_lastDrawAt=0;$('mainPlayer').focus();S.categories[0].currentPool.length`);
+    win.webContents.focus();
     pressCtrlD();
     await sleep(1300);
     const hotkeyAfter = await js(`S.currentVideo?S.currentVideo.id:null`);
@@ -379,10 +423,13 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     const dblTest = await js(`(async()=>{
       const p=$('mainPlayer');
       const before=!p.paused;
+      let fullscreenRequested=false;
+      const originalFullscreen=p.parentElement.requestFullscreen;
+      p.parentElement.requestFullscreen=()=>{fullscreenRequested=true;return Promise.resolve()};
       p.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
       await new Promise(r=>setTimeout(r,400));
       const afterDbl=!p.paused;
-      if(document.fullscreenElement)document.exitFullscreen();
+      p.parentElement.requestFullscreen=originalFullscreen;
       // 单击：250ms 后应切换暂停状态
       p.dispatchEvent(new MouseEvent('click',{bubbles:true}));
       await new Promise(r=>setTimeout(r,400));
@@ -391,7 +438,7 @@ module.exports = async ({ app, win, DATA_DIR }) => {
       p.dispatchEvent(new MouseEvent('click',{bubbles:true}));
       await new Promise(r=>setTimeout(r,400));
       const afterClick2=!p.paused;
-      return {before,afterDbl,afterClick,afterClick2,dblOk:before===afterDbl,clickOk:afterClick===!before&&afterClick2===before};
+      return {before,afterDbl,afterClick,afterClick2,fullscreenRequested,dblOk:before===afterDbl&&fullscreenRequested,clickOk:afterClick===!before&&afterClick2===before};
     })()`);
     if (dblTest.dblOk && dblTest.clickOk) pass('双击不暂停+单击切换', JSON.stringify(dblTest));
     else fail('双击不暂停+单击切换', JSON.stringify(dblTest));
@@ -436,23 +483,36 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     await shot('06-after-delete.png');
 
     // 连续快速点击抽取：CD 生效只抽一次，无播放失败（4.4 防竞态）
-    await js(`(async()=>{await resetCurrentPool();return true})()`);
+    await js(`(async()=>{await resetCurrentPool();clearPlayer();_lastDrawAt=0;return true})()`);
     await sleep(400);
     const cdTest = await js(`(async()=>{
-      const p=$('mainPlayer');
+      const p=$('mainPlayer'),cat=S.categories[0],trace=[],started=performance.now();
+      const snap=label=>trace.push({label,at:Math.round(performance.now()-started),pool:cat.currentPool.length,current:S.currentVideo&&S.currentVideo.id,
+        token:_playToken,lastDraw:_lastDrawAt,ended:p.ended,time:Number(p.currentTime.toFixed(3)),duration:Number.isFinite(p.duration)?Number(p.duration.toFixed(3)):null,
+        stats:cat.videos.map(v=>({id:v.id,watched:v.watched,watchCount:v.watchCount}))});
+      const onPlay=()=>snap('event:play'),onEnded=()=>snap('event:ended');
+      p.addEventListener('play',onPlay);p.addEventListener('ended',onEnded);
       const beforeId=S.currentVideo?S.currentVideo.id:null;
-      const beforePool=S.categories[0]?S.categories[0].currentPool.length:0;
-      drawVideo();
-      await new Promise(r=>setTimeout(r,120));
-      drawVideo();
-      await new Promise(r=>setTimeout(r,120));
-      drawVideo();
-      await new Promise(r=>setTimeout(r,1600));
-      return {beforeId,afterId:S.currentVideo?S.currentVideo.id:null,beforePool,afterPool:S.categories[0]?S.categories[0].currentPool.length:0,
-        playerError:p.error?p.error.code:null,playing:!p.paused};
+      const beforePool=cat.currentPool.length;
+      const realNow=Date.now,baseNow=realNow();let testNow=baseNow;
+      Date.now=()=>testNow;
+      try{
+        snap('before');drawVideo();snap('draw:1');
+        testNow=baseNow+120;snap('before:2');drawVideo();snap('draw:2');
+        testNow=baseNow+240;snap('before:3');drawVideo();snap('draw:3')}
+      finally{Date.now=realNow}
+      for(let i=0;i<30&&cat.currentPool.length===beforePool;i++)await new Promise(r=>setTimeout(r,100));
+      await new Promise(r=>setTimeout(r,400));
+      snap('final');p.removeEventListener('play',onPlay);p.removeEventListener('ended',onEnded);
+      return {beforeId,afterId:S.currentVideo?S.currentVideo.id:null,beforePool,afterPool:cat.currentPool.length,
+        playerError:p.error?p.error.code:null,playing:!p.paused,trace};
     })()`);
-    if (cdTest.afterPool === cdTest.beforePool - 1 && cdTest.playerError === null && cdTest.playing) pass('连续抽取CD(只生效一次,无播放失败)', JSON.stringify(cdTest));
-    else fail('连续抽取CD(只生效一次,无播放失败)', JSON.stringify(cdTest));
+    const cdOk = cdTest.afterPool === cdTest.beforePool - 1 && cdTest.playerError === null && cdTest.playing;
+    const cdDetail = cdOk
+      ? JSON.stringify({ beforeId: cdTest.beforeId, afterId: cdTest.afterId, beforePool: cdTest.beforePool, afterPool: cdTest.afterPool, playerError: cdTest.playerError, playing: cdTest.playing })
+      : JSON.stringify(cdTest);
+    if (cdOk) pass('连续抽取CD(只生效一次,无播放失败)', cdDetail);
+    else fail('连续抽取CD(只生效一次,无播放失败)', cdDetail);
     await shot('06b-cd.png');
 
     // 备份（E2E 钩子绕过保存对话框）
@@ -483,7 +543,10 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     // 旧版备份兼容测试（HTML v3.1 格式：相对路径 + rootName，无 roots；多文件夹合集）
     const oldBackupPath = path.join(DATA_DIR, 'e2e-old-backup.json');
     const foo2 = fs.statSync(path.join(folder, 'foo2.mp4'));
-    const tvdDir = path.join(process.cwd(), 'test-data', '剧集');
+    const tvdDir = path.join(tdata, '剧集');
+    fs.mkdirSync(tvdDir, { recursive: true });
+    fs.copyFileSync(sample, path.join(tvdDir, 'bar.mp4'));
+    const barStat = fs.statSync(path.join(tvdDir, 'bar.mp4'));
     const oldBackup = {
       version: 11,
       categories: [{
@@ -493,8 +556,8 @@ module.exports = async ({ app, win, DATA_DIR }) => {
           size: foo2.size, watched: false, watchCount: 1, likeCount: 0, dislikeCount: 0,
           playTimestamps: [], likeTimestamps: [], seekTimestamps: []
         }, {
-          id: 'ov2', name: 'bar.mkv', path: 'bar.mkv', rootName: '剧集',
-          size: 2048, watched: false, watchCount: 2, likeCount: 0, dislikeCount: 0,
+          id: 'ov2', name: 'bar.mp4', path: 'bar.mp4', rootName: '剧集',
+          size: barStat.size, watched: false, watchCount: 2, likeCount: 0, dislikeCount: 0,
           playTimestamps: [], likeTimestamps: [], seekTimestamps: []
         }]
       }],
@@ -522,10 +585,10 @@ module.exports = async ({ app, win, DATA_DIR }) => {
       await new Promise(r=>setTimeout(r,800));
       const cat=S.categories[0];
       const foo=cat.videos.find(x=>x.name==='foo2.mp4');
-      const bar=cat.videos.find(x=>x.name==='bar.mkv');
+      const bar=cat.videos.find(x=>x.name==='bar.mp4');
       return {roots:cat.roots,videos:cat.videos.map(x=>x.name),ready:cat.permissionRestored,fooCount:foo?foo.watchCount:0,barCount:bar?bar.watchCount:0};
     })()`);
-    if (relinked.roots.length === 2 && relinked.videos.includes('foo2.mp4') && relinked.videos.includes('bar.mkv') && relinked.ready && relinked.fooCount === 1 && relinked.barCount === 2) pass('旧版备份→关联文件夹(多选+元数据保留)', JSON.stringify(relinked));
+    if (relinked.roots.length === 2 && relinked.videos.includes('foo2.mp4') && relinked.videos.includes('bar.mp4') && relinked.ready && relinked.fooCount === 1 && relinked.barCount === 2) pass('旧版备份→关联文件夹(多选+元数据保留)', JSON.stringify(relinked));
     else fail('旧版备份→关联文件夹(多选+元数据保留)', JSON.stringify(relinked));
     await shot('09-relinked.png');
 
@@ -555,7 +618,7 @@ module.exports = async ({ app, win, DATA_DIR }) => {
       const cat=S.categories.find(c=>c.type!=='tags');
       if(!cat)return {diag,fatal:'no normal category'};
       const foo=cat.videos.find(x=>x.name==='foo2.mp4');
-      const bar=cat.videos.find(x=>x.name==='bar.mkv');
+      const bar=cat.videos.find(x=>x.name==='bar.mp4');
       if(!foo||!bar)return {diag,fatal:'foo/bar missing',foo:!!foo,bar:!!bar};
       S.activeCategoryId=cat.id;
       // 给 foo 打 MAX
@@ -579,7 +642,7 @@ module.exports = async ({ app, win, DATA_DIR }) => {
       showTagsModal();
       Array.from(document.querySelectorAll('#tagsList button')).find(b=>b.textContent.includes('MAX')).click();
       await new Promise(r=>setTimeout(r,500));
-      const hasBarAfter=tagCat.videos.some(v=>v.name==='bar.mkv');
+      const hasBarAfter=tagCat.videos.some(v=>v.name==='bar.mp4');
       // 动态跟随：取消 foo 的 MAX → 自动移出标签合集
       S.currentVideo=foo;
       showTagsModal();
@@ -664,6 +727,7 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     await shot('09e-consistency.png');
 
     // 删空标签预设后，输入框仍可正常输入（4.8 修复输入失效 bug）
+    win.webContents.focus();
     const emptyTagsInput = await js(`(async()=>{
       window.__autoConfirm=true;
       showTagsPresetsModal();
@@ -704,6 +768,7 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     await shot('09d-empty-tags.png');
 
     // 数据初始化：执行前自动备份 + 从自动备份恢复
+    await js(`window.__autoConfirm=true;0`);
     const initTest = await js(`(async()=>{
       await resetAllPools();
       await new Promise(r=>setTimeout(r,600));
@@ -730,7 +795,7 @@ module.exports = async ({ app, win, DATA_DIR }) => {
     const failCount = results.steps.filter(s => !s.ok).length;
     fs.writeFileSync(path.join(DATA_DIR, 'e2e-result.json'), JSON.stringify(results, null, 2), 'utf8');
     console.log(`阶段1结束: ${results.steps.length - failCount}/${results.steps.length} 通过`);
-    try { fs.rmSync(path.join(process.cwd(), '随机播放器旧版测试'), { recursive: true, force: true }); } catch (e) { /* 忽略 */ }
+    try { fs.rmSync(oldDir, { recursive: true, force: true }); } catch (e) { /* 忽略 */ }
     app.exit(failCount ? 1 : 0);
   } catch (err) {
     console.error('[E2E异常]', err);
