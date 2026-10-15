@@ -4,8 +4,8 @@
 
 ## 📦 GitHub 下载
 
-- **最新稳定版：5.8.2**：[下载 Windows 绿色版 ZIP](https://github.com/xiaohuangya617/random-player-exe/releases/download/v5.8.2/random-player-5.8.2-win.zip)
-- 发布页：[GitHub Releases](https://github.com/xiaohuangya617/random-player-exe/releases)
+- **最新稳定版：5.8.2**：[下载 Windows 绿色版 ZIP](https://github.com/xiaohuangya617/Frame-random-player/releases/download/v5.8.2/random-player-5.8.2-win.zip)
+- 发布页：[GitHub Releases](https://github.com/xiaohuangya617/Frame-random-player/releases)
 
 ---
 
